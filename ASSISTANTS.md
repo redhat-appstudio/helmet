@@ -94,6 +94,7 @@ The framework follows a **builder pattern with functional options**:
 // Entry point for consumers
 app := framework.NewApp("installer-name", filesystem,
     framework.WithVersion("1.0.0"),
+    framework.WithInstallerTarball(installerTarball),
     framework.WithIntegrations(customIntegrations...),
     framework.WithMCPToolsBuilder(customToolsBuilder),
 )

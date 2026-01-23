@@ -129,6 +129,7 @@ func customTools(ctx api.AppContext, server *mcpserver.Server) error {
 func main() {
     app := framework.NewApp("myapp", filesystem,
         framework.WithMCPToolsBuilder(customTools),
+        framework.WithInstallerTarball(InstallerTarball),
     )
     app.Run()
 }

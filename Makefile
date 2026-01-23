@@ -16,24 +16,6 @@ GITHUB_REF_NAME ?= ${GITHUB_REF_NAME:-}
 GITHUB_TOKEN ?= ${GITHUB_TOKEN:-}
 
 
-# Determine the appropriate tar command based on the operating system.
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	TAR := gtar
-else
-	TAR := tar
-endif
-
-# Directory with the installer resources, scripts, Helm Charts, etc.
-INSTALLER_DIR ?= ./installer
-# Tarball with the installer resources.
-INSTALLER_TARBALL ?= $(INSTALLER_DIR)/installer.tar
-# Data to include in the tarball.
-INSTALLER_TARBALL_DATA ?= $(shell find -L $(INSTALLER_DIR) -type f \
-	! -path "$(INSTALLER_TARBALL)" \
-	! -name embed.go \
-)
-
 # Version will be set at build time via git describe
 VERSION ?= $(shell \
 	if [ -n "$(GITHUB_REF_NAME)" ]; then echo "${GITHUB_REF_NAME}"; \
@@ -53,21 +35,8 @@ COMMIT_ID ?= $(shell git rev-parse HEAD)
 
 # Build the application
 .PHONY: build
-build: installer-tarball
+build:
 	go build $(GOFLAGS) -ldflags "-X main.Version=$(VERSION) -X main.Commit=$(COMMIT_ID)" ./...
-
-#
-# Installer Tarball
-#
-
-# Creates a tarball with all resources required for the installation process.
-.PHONY: installer-tarball
-installer-tarball: $(INSTALLER_TARBALL)
-$(INSTALLER_TARBALL): $(INSTALLER_TARBALL_DATA)
-	@echo "# Generating '$(INSTALLER_TARBALL)'"
-	@test -f "$(INSTALLER_TARBALL)" && rm -f "$(INSTALLER_TARBALL)" || true
-	@$(TAR) -C "$(INSTALLER_DIR)" -cpf "$(INSTALLER_TARBALL)" \
-	$(shell echo "$(INSTALLER_TARBALL_DATA)" | sed "s:\./installer/:./:g")
 
 #
 # Tools
@@ -93,7 +62,7 @@ test: test-unit
 
 # Runs the unit tests.
 .PHONY: test-unit
-test-unit: installer-tarball
+test-unit:
 	go test $(GOFLAGS_TEST) $(PKG) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.

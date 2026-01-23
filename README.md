@@ -42,15 +42,16 @@ import (
 )
 
 //go:embed installer.tar
-var installerAssets []byte
+var installerTarball []byte
 
 func main() {
-    // Create filesystem from embedded assets
-    filesystem, _ := framework.NewTarFS(installerAssets)
+    // Create filesystem from embedded tarball
+    filesystem, _ := framework.NewTarFS(installerTarball)
 
     // Create and run the installer
     app := framework.NewApp("myapp", filesystem,
         framework.WithVersion("1.0.0"),
+        framework.WithInstallerTarball(installerTarball),
     )
 
     app.Run()
@@ -147,6 +148,7 @@ Extend the framework with custom integrations, commands, and MCP tools:
 
 ```go
 app := framework.NewApp("myapp", filesystem,
+    framework.WithInstallerTarball(InstallerTarball),
     framework.WithIntegrations(customIntegrations...),
     framework.WithMCPToolsBuilder(customMCPTools),
 )
@@ -191,7 +193,9 @@ var assets []byte
 
 func main() {
     fs, _ := framework.NewTarFS(assets)
-    app := framework.NewApp("myinstaller", fs)
+    app := framework.NewApp("myinstaller", fs,
+        WithInstallerTarball(InstallerTarball),
+    )
     app.Run()
 }
 ```
@@ -219,6 +223,7 @@ func (i *CustomIntegration) Command(logger logr.Logger) (*cobra.Command, error) 
 func main() {
     fs, _ := framework.NewTarFS(assets)
     app := framework.NewApp("myinstaller", fs,
+        framework.WithInstallerTarball(InstallerTarball),
         framework.WithIntegrations(&CustomIntegration{}),
     )
     app.Run()
@@ -245,6 +250,7 @@ func customTools(ctx api.AppContext, s *mcpserver.Server) error {
 func main() {
     fs, _ := framework.NewTarFS(assets)
     app := framework.NewApp("myinstaller", fs,
+        framework.WithInstallerTarball(InstallerTarball),
         framework.WithMCPToolsBuilder(customTools),
     )
     app.Run()
