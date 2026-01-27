@@ -15,16 +15,6 @@ CGO_LDFLAGS ?=
 GITHUB_REF_NAME ?= ${GITHUB_REF_NAME:-}
 GITHUB_TOKEN ?= ${GITHUB_TOKEN:-}
 
-
-# Version will be set at build time via git describe
-VERSION ?= $(shell \
-	if [ -n "$(GITHUB_REF_NAME)" ]; then echo "${GITHUB_REF_NAME}"; \
-	else git describe --tags --always || echo "v0.0.0-SNAPSHOT"; \
-	fi)
-
-# Commit will be set at build time via git commit hash
-COMMIT_ID ?= $(shell git rev-parse HEAD)
-
 .EXPORT_ALL_VARIABLES:
 
 .default: build
@@ -36,7 +26,7 @@ COMMIT_ID ?= $(shell git rev-parse HEAD)
 # Build the application
 .PHONY: build
 build:
-	go build $(GOFLAGS) -ldflags "-X main.Version=$(VERSION) -X main.Commit=$(COMMIT_ID)" ./...
+	go build $(GOFLAGS) ./...
 
 #
 # Tools
