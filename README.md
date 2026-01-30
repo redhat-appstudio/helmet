@@ -178,6 +178,23 @@ go get github.com/redhat-appstudio/helmet/pkg/framework
 
 ## Examples
 
+### Complete Example Application
+
+See [`example/helmet-ex/`](example/helmet-ex/) for a comprehensive example demonstrating all framework features:
+
+```bash
+cd example/helmet-ex
+make build
+./helmet-ex --help
+```
+
+The example includes:
+- Application context with build-time metadata injection
+- Embedded tarball filesystem with overlay support
+- Standard integration modules (GitHub, GitLab, Quay, ACS, etc.)
+- MCP server with AI assistant instructions
+- Complete CLI with all generated commands
+
 ### Basic Installer
 
 ```go
