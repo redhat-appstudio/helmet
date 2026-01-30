@@ -38,19 +38,26 @@ package main
 
 import (
     _ "embed"
-    "github.com/redhat-appstudio/helmet/pkg/framework"
+    "os"
+    "github.com/redhat-appstudio/helmet/api"
+    "github.com/redhat-appstudio/helmet/framework"
 )
 
 //go:embed installer.tar
 var installerTarball []byte
 
 func main() {
-    // Create filesystem from embedded tarball
-    filesystem, _ := framework.NewTarFS(installerTarball)
+    // Create application context with metadata
+    appCtx := &api.AppContext{
+        Name:    "myapp",
+        Version: "1.0.0",
+    }
 
-    // Create and run the installer
-    app := framework.NewApp("myapp", filesystem,
-        framework.WithVersion("1.0.0"),
+    // Create and run the installer from embedded tarball
+    app, _ := framework.NewAppFromTarball(
+        appCtx,
+        installerTarball,
+        os.Getwd(),
         framework.WithInstallerTarball(installerTarball),
     )
 
@@ -167,7 +174,7 @@ app.Run()
 Import Helmet into your Go project:
 
 ```bash
-go get github.com/redhat-appstudio/helmet/pkg/framework
+go get github.com/redhat-appstudio/helmet/framework
 ```
 
 ## Documentation
@@ -185,16 +192,23 @@ package main
 
 import (
     _ "embed"
-    "github.com/redhat-appstudio/helmet/pkg/framework"
+    "os"
+    "github.com/redhat-appstudio/helmet/api"
+    "github.com/redhat-appstudio/helmet/framework"
 )
 
 //go:embed installer.tar
-var assets []byte
+var installerTarball []byte
 
 func main() {
-    fs, _ := framework.NewTarFS(assets)
-    app := framework.NewApp("myinstaller", fs,
-        WithInstallerTarball(InstallerTarball),
+    appCtx := &api.AppContext{Name: "myinstaller"}
+    cwd, _ := os.Getwd()
+
+    app, _ := framework.NewAppFromTarball(
+        appCtx,
+        installerTarball,
+        cwd,
+        framework.WithInstallerTarball(installerTarball),
     )
     app.Run()
 }
@@ -204,9 +218,14 @@ func main() {
 
 ```go
 import (
-    "github.com/redhat-appstudio/helmet/pkg/api"
-    "github.com/redhat-appstudio/helmet/pkg/framework"
+    _ "embed"
+    "os"
+    "github.com/redhat-appstudio/helmet/api"
+    "github.com/redhat-appstudio/helmet/framework"
 )
+
+//go:embed installer.tar
+var installerTarball []byte
 
 type CustomIntegration struct{}
 
@@ -221,10 +240,21 @@ func (i *CustomIntegration) Command(logger logr.Logger) (*cobra.Command, error) 
 }
 
 func main() {
-    fs, _ := framework.NewTarFS(assets)
-    app := framework.NewApp("myinstaller", fs,
-        framework.WithInstallerTarball(InstallerTarball),
-        framework.WithIntegrations(&CustomIntegration{}),
+    appCtx := &api.AppContext{Name: "myinstaller"}
+    cwd, _ := os.Getwd()
+
+    // Combine standard integrations with custom ones
+    integrations := append(
+        framework.StandardIntegrations(),
+        &CustomIntegration{},
+    )
+
+    app, _ := framework.NewAppFromTarball(
+        appCtx,
+        installerTarball,
+        cwd,
+        framework.WithInstallerTarball(installerTarball),
+        framework.WithIntegrations(integrations...),
     )
     app.Run()
 }
@@ -233,7 +263,16 @@ func main() {
 ### With Custom MCP Tools
 
 ```go
-import "github.com/redhat-appstudio/helmet/pkg/framework/mcpserver"
+import (
+    _ "embed"
+    "os"
+    "github.com/redhat-appstudio/helmet/api"
+    "github.com/redhat-appstudio/helmet/framework"
+    "github.com/redhat-appstudio/helmet/framework/mcpserver"
+)
+
+//go:embed installer.tar
+var installerTarball []byte
 
 func customTools(ctx api.AppContext, s *mcpserver.Server) error {
     s.AddTool(mcpserver.Tool{
@@ -248,9 +287,14 @@ func customTools(ctx api.AppContext, s *mcpserver.Server) error {
 }
 
 func main() {
-    fs, _ := framework.NewTarFS(assets)
-    app := framework.NewApp("myinstaller", fs,
-        framework.WithInstallerTarball(InstallerTarball),
+    appCtx := &api.AppContext{Name: "myinstaller"}
+    cwd, _ := os.Getwd()
+
+    app, _ := framework.NewAppFromTarball(
+        appCtx,
+        installerTarball,
+        cwd,
+        framework.WithInstallerTarball(installerTarball),
         framework.WithMCPToolsBuilder(customTools),
     )
     app.Run()

@@ -103,9 +103,15 @@ Register custom tools when creating your app:
 
 ```go
 import (
-    "github.com/redhat-appstudio/helmet/pkg/api"
-    "github.com/redhat-appstudio/helmet/pkg/framework/mcpserver"
+    _ "embed"
+    "os"
+    "github.com/redhat-appstudio/helmet/api"
+    "github.com/redhat-appstudio/helmet/framework"
+    "github.com/redhat-appstudio/helmet/framework/mcpserver"
 )
+
+//go:embed installer.tar
+var installerTarball []byte
 
 func customTools(ctx api.AppContext, server *mcpserver.Server) error {
     server.AddTool(mcpserver.Tool{
@@ -127,9 +133,15 @@ func customTools(ctx api.AppContext, server *mcpserver.Server) error {
 }
 
 func main() {
-    app := framework.NewApp("myapp", filesystem,
+    appCtx := &api.AppContext{Name: "myapp"}
+    cwd, _ := os.Getwd()
+
+    app, _ := framework.NewAppFromTarball(
+        appCtx,
+        installerTarball,
+        cwd,
+        framework.WithInstallerTarball(installerTarball),
         framework.WithMCPToolsBuilder(customTools),
-        framework.WithInstallerTarball(InstallerTarball),
     )
     app.Run()
 }
