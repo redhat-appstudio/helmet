@@ -27,7 +27,7 @@ You are a Go Staff Engineer and Systems Architect assisting with a **reusable He
 
 **FRAMEWORK DEVELOPMENT PRINCIPLES:**
 
-1. **API Stability**: Changes to public APIs (`pkg/framework`, `pkg/api`) require careful consideration:
+1. **API Stability**: Changes to public APIs (`framework`, `api`) require careful consideration:
    - Use functional options pattern for extensibility without breaking changes
    - Deprecate before removing (with clear migration paths)
    - Document all breaking changes in upgrade guides
@@ -69,7 +69,7 @@ All automation is driven by [`Makefile`](./Makefile). Run `make` without argumen
 ## Testing
 
 - **Framework**: Standard `testing` package with `github.com/onsi/gomega` assertions
-- **Coverage**: Maintain >80% coverage for `pkg/framework`, `pkg/api`, `pkg/resolver`
+- **Coverage**: Maintain >80% coverage for `framework`, `api`, `internal/resolver`
 - **Testing Strategy**:
   - Unit tests: Package-level logic with mocked dependencies
   - Integration tests: End-to-end workflows with real Kubernetes (kind/k3s)
@@ -91,12 +91,25 @@ When dependencies change, the following sequence runs automatically:
 The framework follows a **builder pattern with functional options**:
 
 ```go
-// Entry point for consumers
-app := framework.NewApp("installer-name", filesystem,
-    framework.WithVersion("1.0.0"),
+// Simplified entry point using NewAppFromTarball (recommended)
+appCtx := &api.AppContext{
+    Name:    "installer-name",
+    Version: "1.0.0",
+}
+app, _ := framework.NewAppFromTarball(
+    appCtx,
+    installerTarball,
+    os.Getwd(),
+    framework.WithInstallerTarball(installerTarball),
+    framework.WithIntegrations(framework.StandardIntegrations()...),
+    framework.WithMCPToolsBuilder(customToolsBuilder),
+)
+
+// Or use NewApp directly for more control over filesystem
+filesystem := createCustomFilesystem()
+app := framework.NewApp(appCtx, filesystem,
     framework.WithInstallerTarball(installerTarball),
     framework.WithIntegrations(customIntegrations...),
-    framework.WithMCPToolsBuilder(customToolsBuilder),
 )
 
 // Returns Cobra command for customization
@@ -112,93 +125,93 @@ Packages are organized by dependency tier and reusability:
 
 #### Core Framework (Public API - Stability Critical)
 
-**`pkg/framework/`** - Application bootstrap
+**`framework/`** - Application bootstrap
 - `App`, `AppContext` - Core application types
 - Functional options pattern for extensibility
 - Cobra CLI generation
 - **Critical**: Changes here affect all consumers
 
-**`pkg/api/`** - Shared interfaces and types
+**`api/`** - Shared interfaces and types
 - `SubCommand` interface (Complete, Validate, Run lifecycle)
 - `IntegrationModule` interface for pluggable integrations
 - `AppContext` for immutable metadata
 - **Critical**: Interface changes are breaking
 
-**`pkg/chartfs/`** - Filesystem abstraction
+**`internal/chartfs/`** - Filesystem abstraction
 - `ChartFS` wrapper around `fs.FS`
 - Convention: expects `config.yaml`, `values.yaml.tpl`, `charts/` at root
 - Helm chart discovery and loading
 
 #### Dependency Resolution (Framework Logic)
 
-**`pkg/resolver/`** - Topology building
+**`internal/resolver/`** - Topology building
 - `Collection` - Index of available charts
 - `Dependency` - Chart with metadata from annotations
 - `Resolver` - Recursive dependency resolution
 - `Topology` - Ordered installation list
 - `TopologyBuilder` - High-level orchestrator
 
-**`pkg/config/`** - Configuration management
+**`internal/config/`** - Configuration management
 - YAML parsing and validation
 - Kubernetes ConfigMap persistence
 - Dynamic updates via JSONPath
 
-**`pkg/engine/`** - Template rendering
+**`internal/engine/`** - Template rendering
 - Go template processing for `values.yaml.tpl`
 - Custom functions (YAML/JSON, validation, Kubernetes lookup)
 - Sprig function library integration
 
 #### Deployment Orchestration
 
-**`pkg/deployer/`** - Helm operations
+**`internal/deployer/`** - Helm operations
 - Install/upgrade with retry logic
 - Dry-run support (client and server-side)
 - Release verification via Helm tests
 
-**`pkg/installer/`** - Installation pipeline
+**`internal/installer/`** - Installation pipeline
 - Template rendering → Deploy → Hooks → Monitoring
 - Coordinates deployer, hooks, and monitor
 
-**`pkg/hooks/`** - Hook script execution
+**`internal/hooks/`** - Hook script execution
 - Pre-deploy and post-deploy lifecycle hooks
 - Environment variable injection
 - Stdout/stderr capture
 
-**`pkg/monitor/`** - Resource readiness
+**`internal/monitor/`** - Resource readiness
 - Polls deployed resources until ready
 - Resource-specific monitoring (pods, namespaces, etc.)
 
 #### Integration System
 
-**`pkg/integrations/`** - Integration manager
+**`internal/integrations/`** - Integration manager
 - Registry of available integration modules
 - Module lifecycle management
 
-**`pkg/integration/`** - Integration interface
+**`internal/integration/`** - Integration interface
 - Generic Kubernetes Secret manager
 - `Interface` contract for implementations
 - Built-in integrations: GitHub, GitLab, ACS, registries, etc.
 
 #### Interface Packages
 
-**`pkg/subcmd/`** - CLI subcommands
+**`internal/subcmd/`** - CLI subcommands
 - Standard commands: config, deploy, topology, integration, mcp
 - Each command implements `SubCommand` interface
 - Integration subcommands auto-generated from modules
 
-**`pkg/mcptools/`** - MCP server tools
+**`internal/mcptools/`** - MCP server tools
 - Exposes framework functionality via Model Context Protocol
 - Tools for config, deploy, topology, status
 - Custom tool registration
 
 #### Low-Level Utilities
 
-**`pkg/k8s/`** - Kubernetes client wrapper
+**`internal/k8s/`** - Kubernetes client wrapper
 - Clientset management
 - Resource CRUD helpers
 - Namespace utilities
 
-**`pkg/flags/`** - Global CLI flags
+**`internal/flags/`** - Global CLI flags
 - Shared flags across subcommands (namespace, kubeconfig, verbose)
 - Flag validation helpers
 
@@ -338,7 +351,7 @@ Generated CLI structure:
 
 When contributing:
 
-1. **Understand Impact**: Changes to `pkg/framework` and `pkg/api` affect all consumers
+1. **Understand Impact**: Changes to `framework` and `api` affect all consumers
 2. **Maintain Stability**: Use functional options for new features
 3. **Document Thoroughly**: Update godoc, README, and upgrade guides
 4. **Test Comprehensively**: Unit + integration + example tests
