@@ -210,6 +210,9 @@ func NewAppFromTarball(
 	ofs := chartfs.NewOverlayFS(tfs, os.DirFS(cwd))
 	cfs := chartfs.New(ofs)
 
+	// Append WithInstallerTarball to opts
+	opts = append(opts, WithInstallerTarball(tarball))
+
 	// Create and return the App using the existing constructor
 	return NewApp(appCtx, cfs, opts...)
 }
