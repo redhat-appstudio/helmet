@@ -33,21 +33,21 @@ endif
 .DEFAULT_GOAL := build
 
 # Build the application
-.PHONY:: build
-build:: $(BIN)# Builds the application executable with installer resources embedded.
-$(BIN):: installer-tarball
-$(BIN)::
+.PHONY: build
+build: $(BIN)# Builds the application executable with installer resources embedded.
+$(BIN): installer-tarball
+$(BIN):
 	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=$(CGO_ENABLED) go build $(GOFLAGS) -ldflags "-X main.version=$(VERSION) -X main.commitID=$(COMMIT_ID)" -o $(BIN) $(CMD_DIR)/$(APP)
 
 # Clean build artifacts
-.PHONY:: clean
-clean::
+.PHONY: clean
+clean:
 	rm -rf $(BIN_DIR)
 	rm -f $(INSTALLER_TARBALL)
 
 # Generate installer tarball from test/ directory
-.PHONY:: installer-tarball
+.PHONY: installer-tarball
 installer-tarball: $(INSTALLER_TARBALL)
 $(INSTALLER_TARBALL): $(INSTALLER_TARBALL_DATA)
 	@echo "# Generating '$(INSTALLER_TARBALL)'"
@@ -61,16 +61,16 @@ $(INSTALLER_TARBALL): $(INSTALLER_TARBALL_DATA)
 		$(shell echo "$(INSTALLER_TARBALL_DATA)" | sed "s:$(INSTALLER_DIR)/:./:g")
 
 # Run the application
-.PHONY:: run
-run:: build
+.PHONY: run
+run: build
 	$(BIN) $(ARGS)
 
-# Show help
-.PHONY:: help
-help::
-	@echo "Targets:"
+# Show help for example application
+.PHONY: example-help
+example-help:
+	@echo "Example Targets:"
 	@echo "  build           		- Build the application (default)"
 	@echo "  clean           		- Remove build artifacts"
 	@echo "  installer-tarball		- Create tarball from test/ directory"
 	@echo "  run             		- Build and run (use ARGS='...' for arguments)"
-	@echo "  help            		- Show help"
+	@echo "  example-help    		- Show example help"

@@ -11,6 +11,7 @@ import _ "embed"
 //   - values.yaml.tpl: Go template for Helm values rendering
 //   - charts/: All Helm charts demonstrating the framework topology
 //
+//nolint:typecheck,nolintlint // installer.tar is generated at build time
 //go:embed installer.tar
 var InstallerTarball []byte
 

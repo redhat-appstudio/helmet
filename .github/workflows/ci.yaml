@@ -1,0 +1,46 @@
+---
+name: CI
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/go
+      - run: make build
+
+  test-unit:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/go
+      - run: make test-unit
+
+  # TODO(otaviof): Fix alerts and uncomment the lint workflow below.
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #     - test-unit
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./.github/actions/go
+  #     - run: make lint

@@ -26,8 +26,8 @@ include example/helmet-ex/Makefile
 #
 
 # Build the application
-.PHONY:: build
-build::
+.PHONY: build
+build:
 	go build $(GOFLAGS) ./...
 
 #
@@ -37,14 +37,14 @@ build::
 # Installs golangci-lint.
 tool-golangci-lint: GOFLAGS =
 tool-golangci-lint:
-	@which golangci-lint &>/dev/null || \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest &>/dev/null
+	which golangci-lint || \
+		go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
 # Installs GitHub CLI ("gh").
 tool-gh: GOFLAGS =
 tool-gh:
-	@which gh >/dev/null 2>&1 || \
-		go install github.com/cli/cli/v2/cmd/gh@latest >/dev/null 2>&1
+	which gh || \
+		go install github.com/cli/cli/v2/cmd/gh@latest
 
 #
 # Test and Lint
@@ -53,12 +53,12 @@ tool-gh:
 test: test-unit
 
 # Runs the unit tests.
-.PHONY:: test-unit
+.PHONY: test-unit
 test-unit:
 	go test $(GOFLAGS_TEST) $(PKG) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.
-.PHONY:: lint
+.PHONY: lint
 lint: tool-golangci-lint
 	golangci-lint run ./...
 
@@ -82,7 +82,7 @@ ifeq ($(strip $(GITHUB_TOKEN)),)
 endif
 
 # Creates a new GitHub release with GITHUB_REF_NAME.
-.PHONY:: github-release-create
+.PHONY: github-release-create
 github-release-create: tool-gh
 	gh release view $(GITHUB_REF_NAME) >/dev/null 2>&1 || \
 		gh release create --generate-notes $(GITHUB_REF_NAME)
@@ -95,8 +95,9 @@ github-release: \
 #
 # Show help
 #
-.PHONY:: help
-help::
+.PHONY: help
+help: example-help
+	@echo ""
 	@echo "Targets:"
 	@echo "  build           		- Build the package (default)"
 	@echo "  github-release-create	- Create GitHub release"

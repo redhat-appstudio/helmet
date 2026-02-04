@@ -1,0 +1,21 @@
+---
+name: Go
+description: 'Configure Go SDK with caching for helmet project'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache: true
+        cache-dependency-path: go.sum
+
+    - name: Add Go bin to PATH
+      shell: bash
+      run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+    - name: Verify Go installation
+      shell: bash
+      run: go version
