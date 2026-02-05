@@ -52,6 +52,11 @@ tool-gh:
 tool-goreleaser:
 	@go tool goreleaser --version
 
+# Executes govulncheck via go tool (version from go.mod).
+.PHONY: tool-govulncheck
+tool-govulncheck:
+	@go tool govulncheck -version
+
 #
 # Test and Lint
 #
@@ -67,6 +72,19 @@ test-unit:
 .PHONY: lint
 lint: build
 	go tool golangci-lint run ./...
+
+#
+# Security
+#
+
+# Scans for known vulnerabilities in dependencies.
+.PHONY: govulncheck
+govulncheck:
+	go tool govulncheck ./...
+
+# Runs all security checks.
+.PHONY: security
+security: govulncheck
 
 #
 # GitHub Release
@@ -128,6 +146,7 @@ help: example-help
 	@echo "  github-release-create   - Create GitHub release (requires 'gh' in PATH)"
 	@echo "  goreleaser-snapshot     - Build release assets for current platform"
 	@echo "  goreleaser-release      - Create full release (CI only)"
-	@echo "  lint                    - Run linting"
+	@echo "  lint                    - Run linting (includes gosec)"
+	@echo "  security                - Run govulncheck vulnerability scan"
 	@echo "  test                    - Run tests"
 	@echo "  help                    - Show help"
