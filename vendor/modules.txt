@@ -477,7 +477,7 @@ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared/arn
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared/config
-# github.com/aws/aws-sdk-go-v2/service/kms v1.48.2
+# github.com/aws/aws-sdk-go-v2/service/kms v1.49.1
 ## explicit; go 1.23
 github.com/aws/aws-sdk-go-v2/service/kms
 github.com/aws/aws-sdk-go-v2/service/kms/internal/endpoints
@@ -2383,8 +2383,8 @@ github.com/sassoftware/relic/lib/x509tools
 # github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e
 ## explicit
 github.com/scylladb/go-set/strset
-# github.com/secure-systems-lab/go-securesystemslib v0.9.1
-## explicit; go 1.23.0
+# github.com/secure-systems-lab/go-securesystemslib v0.10.0
+## explicit; go 1.24.0
 github.com/secure-systems-lab/go-securesystemslib/cjson
 github.com/secure-systems-lab/go-securesystemslib/dsse
 github.com/secure-systems-lab/go-securesystemslib/encrypted
@@ -2405,8 +2405,8 @@ github.com/shibumi/go-pathspec
 # github.com/shopspring/decimal v1.4.0
 ## explicit; go 1.10
 github.com/shopspring/decimal
-# github.com/sigstore/cosign/v2 v2.6.1
-## explicit; go 1.24.6
+# github.com/sigstore/cosign/v2 v2.6.2
+## explicit; go 1.25.0
 github.com/sigstore/cosign/v2/internal/pkg/cosign/payload/size
 github.com/sigstore/cosign/v2/internal/pkg/now
 github.com/sigstore/cosign/v2/internal/pkg/oci/remote
@@ -2467,7 +2467,7 @@ github.com/sigstore/rekor-tiles/v2/pkg/generated/protobuf
 github.com/sigstore/rekor-tiles/v2/pkg/note
 github.com/sigstore/rekor-tiles/v2/pkg/types/verifier
 github.com/sigstore/rekor-tiles/v2/pkg/verify
-# github.com/sigstore/sigstore v1.10.3
+# github.com/sigstore/sigstore v1.10.4
 ## explicit; go 1.25.0
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauth
@@ -2578,8 +2578,8 @@ github.com/theupdateframework/go-tuf/data
 github.com/theupdateframework/go-tuf/internal/roles
 github.com/theupdateframework/go-tuf/pkg/keys
 github.com/theupdateframework/go-tuf/verify
-# github.com/theupdateframework/go-tuf/v2 v2.3.0
-## explicit; go 1.24.9
+# github.com/theupdateframework/go-tuf/v2 v2.4.1
+## explicit; go 1.25.5
 github.com/theupdateframework/go-tuf/v2/metadata
 github.com/theupdateframework/go-tuf/v2/metadata/config
 github.com/theupdateframework/go-tuf/v2/metadata/fetcher
