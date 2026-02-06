@@ -1,13 +1,9 @@
 package subcmd
 
 import (
-	"log/slog"
-
 	"github.com/redhat-appstudio/helmet/api"
-
 	"github.com/redhat-appstudio/helmet/internal/config"
 	"github.com/redhat-appstudio/helmet/internal/integration"
-	"github.com/redhat-appstudio/helmet/internal/k8s"
 	"github.com/redhat-appstudio/helmet/internal/runcontext"
 
 	"github.com/spf13/cobra"
@@ -18,9 +14,8 @@ import (
 type IntegrationArtifactory struct {
 	cmd         *cobra.Command           // cobra command
 	appCtx      *api.AppContext          // application context
-	logger      *slog.Logger             // application logger
+	runCtx      *runcontext.RunContext   // run context (kube, logger, chartfs)
 	cfg         *config.Config           // installer configuration
-	kube        *k8s.Kube                // kubernetes client
 	integration *integration.Integration // integration instance
 }
 
@@ -42,8 +37,7 @@ func (a *IntegrationArtifactory) Cmd() *cobra.Command {
 // Complete is a no-op in this case.
 func (a *IntegrationArtifactory) Complete(_ []string) error {
 	var err error
-	runCtx := &runcontext.RunContext{Kube: a.kube, Logger: a.logger}
-	a.cfg, err = bootstrapConfig(a.cmd.Context(), a.appCtx, runCtx)
+	a.cfg, err = bootstrapConfig(a.cmd.Context(), a.appCtx, a.runCtx)
 	return err
 }
 
@@ -61,8 +55,7 @@ func (a *IntegrationArtifactory) Run() error {
 // responsible to manage the TSSC integrations with a Artifactory image registry.
 func NewIntegrationArtifactory(
 	appCtx *api.AppContext,
-	logger *slog.Logger,
-	kube *k8s.Kube,
+	runCtx *runcontext.RunContext,
 	i *integration.Integration,
 ) *IntegrationArtifactory {
 	a := &IntegrationArtifactory{
@@ -74,8 +67,7 @@ func NewIntegrationArtifactory(
 		},
 
 		appCtx:      appCtx,
-		logger:      logger,
-		kube:        kube,
+		runCtx:      runCtx,
 		integration: i,
 	}
 	i.PersistentFlags(a.cmd)

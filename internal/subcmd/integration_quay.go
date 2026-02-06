@@ -1,13 +1,9 @@
 package subcmd
 
 import (
-	"log/slog"
-
 	"github.com/redhat-appstudio/helmet/api"
-
 	"github.com/redhat-appstudio/helmet/internal/config"
 	"github.com/redhat-appstudio/helmet/internal/integration"
-	"github.com/redhat-appstudio/helmet/internal/k8s"
 	"github.com/redhat-appstudio/helmet/internal/runcontext"
 
 	"github.com/spf13/cobra"
@@ -18,9 +14,8 @@ import (
 type IntegrationQuay struct {
 	cmd         *cobra.Command           // cobra command
 	appCtx      *api.AppContext          // application context
-	logger      *slog.Logger             // application logger
+	runCtx      *runcontext.RunContext   // run context (kube, logger, chartfs)
 	cfg         *config.Config           // installer configuration
-	kube        *k8s.Kube                // kubernetes client
 	integration *integration.Integration // integration instance
 }
 
@@ -54,8 +49,7 @@ func (q *IntegrationQuay) Cmd() *cobra.Command {
 // Complete is a no-op in this case.
 func (q *IntegrationQuay) Complete(_ []string) error {
 	var err error
-	runCtx := &runcontext.RunContext{Kube: q.kube, Logger: q.logger}
-	q.cfg, err = bootstrapConfig(q.cmd.Context(), q.appCtx, runCtx)
+	q.cfg, err = bootstrapConfig(q.cmd.Context(), q.appCtx, q.runCtx)
 	return err
 }
 
@@ -73,8 +67,7 @@ func (q *IntegrationQuay) Run() error {
 // responsible to manage the TSSC integrations with a Quay image registry.
 func NewIntegrationQuay(
 	appCtx *api.AppContext,
-	logger *slog.Logger,
-	kube *k8s.Kube,
+	runCtx *runcontext.RunContext,
 	i *integration.Integration,
 ) *IntegrationQuay {
 	q := &IntegrationQuay{
@@ -86,8 +79,7 @@ func NewIntegrationQuay(
 		},
 
 		appCtx:      appCtx,
-		logger:      logger,
-		kube:        kube,
+		runCtx:      runCtx,
 		integration: i,
 	}
 	i.PersistentFlags(q.cmd)

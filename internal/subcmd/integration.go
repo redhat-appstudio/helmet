@@ -72,7 +72,7 @@ func NewIntegration(
 
 	for _, mod := range manager.GetModules() {
 		wrapper := manager.Integration(integrations.IntegrationName(mod.Name))
-		sub := mod.Command(appCtx, runCtx.Logger, runCtx.Kube, wrapper)
+		sub := mod.Command(appCtx, runCtx, wrapper)
 		cmd.AddCommand(api.NewRunner(sub).Cmd())
 	}
 
