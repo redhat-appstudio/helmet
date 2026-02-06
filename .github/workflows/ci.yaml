@@ -33,6 +33,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/go
       - run: make test-unit
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.out
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     runs-on: ubuntu-latest

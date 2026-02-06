@@ -28,7 +28,7 @@ Via [`Makefile`](./Makefile) — always use `make` (ensures build-time injection
 ## Testing
 
 - **Assertions**: `github.com/onsi/gomega`
-- **Coverage**: >80% for `pkg/framework`, `pkg/api`, `pkg/resolver`
+- **Coverage**: >80% for `framework/`, `api/`, `internal/resolver`
 - **Deps changed?** Run `go mod tidy -v && go mod vendor`
 
 ## Critical Packages
@@ -37,8 +37,8 @@ Consumer-facing — use functional options for extensibility:
 
 | Package | Scope |
 |---------|-------|
-| `pkg/framework/` | App bootstrap, CLI |
-| `pkg/api/` | `SubCommand`, `IntegrationModule`, `AppContext` |
+| `framework/` | App bootstrap, CLI |
+| `api/` | `SubCommand`, `IntegrationModule`, `AppContext` |
 
 ## Patterns
 

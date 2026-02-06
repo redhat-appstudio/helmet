@@ -1,7 +1,7 @@
 APP = helmet
 
 # Primary source code directories.
-PKG ?= ./internal/...
+PKG ?= ./api/... ./framework/... ./internal/...
 
 # Golang general flags for build and testing.
 GOFLAGS ?= -v
@@ -66,7 +66,7 @@ test: test-unit
 # Runs the unit tests.
 .PHONY: test-unit
 test-unit:
-	go test $(GOFLAGS_TEST) $(PKG) $(ARGS)
+	go test $(GOFLAGS_TEST) -coverprofile=coverage.out -covermode=atomic $(PKG) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.
 .PHONY: lint
