@@ -13,6 +13,7 @@ import (
 
 	"github.com/redhat-appstudio/helmet/api"
 	"github.com/redhat-appstudio/helmet/internal/flags"
+	"github.com/redhat-appstudio/helmet/internal/runcontext"
 
 	"github.com/spf13/cobra"
 )
@@ -20,8 +21,10 @@ import (
 // Installer represents the installer subcommand to list and extract the embedded
 // resources used for the installation process.
 type Installer struct {
-	cmd   *cobra.Command // cobra command
-	flags *flags.Flags   // global flags
+	cmd    *cobra.Command // cobra command
+	appCtx *api.AppContext
+	runCtx *runcontext.RunContext
+	flags  *flags.Flags
 
 	installerTarball []byte // embedded installer tarball
 	list             bool   // list the embedded resources
@@ -230,13 +233,20 @@ func (i *Installer) Run() error {
 }
 
 // NewInstaller creates a new installer subcommand.
-func NewInstaller(_ *api.AppContext, f *flags.Flags, installerTarball []byte) *Installer {
+func NewInstaller(
+	appCtx *api.AppContext,
+	runCtx *runcontext.RunContext,
+	f *flags.Flags,
+	installerTarball []byte,
+) *Installer {
 	i := &Installer{
 		cmd: &cobra.Command{
 			Use:   "installer",
 			Short: "Lists or extract the embedded installer resources",
 			Long:  installerDesc,
 		},
+		appCtx:           appCtx,
+		runCtx:           runCtx,
 		flags:            f,
 		installerTarball: installerTarball,
 	}

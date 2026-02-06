@@ -3,12 +3,11 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/redhat-appstudio/helmet/api"
 	"github.com/redhat-appstudio/helmet/internal/config"
 	"github.com/redhat-appstudio/helmet/internal/integration"
-	"github.com/redhat-appstudio/helmet/internal/k8s"
+	"github.com/redhat-appstudio/helmet/internal/runcontext"
 )
 
 // IntegrationName name of a integration.
@@ -93,15 +92,14 @@ func (m *Manager) Register(mod api.IntegrationModule, i *integration.Integration
 // LoadModules initializes and registers the provided integration modules.
 func (m *Manager) LoadModules(
 	appName string,
-	logger *slog.Logger,
-	kube *k8s.Kube,
+	runCtx *runcontext.RunContext,
 	modules []api.IntegrationModule,
 ) error {
 	for _, mod := range modules {
-		impl := mod.Init(logger, kube)
+		impl := mod.Init(runCtx.Logger, runCtx.Kube)
 
 		secretName := fmt.Sprintf("%s-%s-integration", appName, mod.Name)
-		wrapper := integration.NewSecret(logger, kube, secretName, impl)
+		wrapper := integration.NewSecret(runCtx.Logger, runCtx.Kube, secretName, impl)
 
 		m.Register(mod, wrapper)
 	}

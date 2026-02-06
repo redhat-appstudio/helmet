@@ -2,13 +2,11 @@ package mcptools
 
 import (
 	"io"
-	"log/slog"
 
 	"github.com/redhat-appstudio/helmet/api"
-	"github.com/redhat-appstudio/helmet/internal/chartfs"
 	"github.com/redhat-appstudio/helmet/internal/flags"
 	"github.com/redhat-appstudio/helmet/internal/integrations"
-	"github.com/redhat-appstudio/helmet/internal/k8s"
+	"github.com/redhat-appstudio/helmet/internal/runcontext"
 )
 
 // MCPToolsContext holds the dependencies needed to create MCP tools.
@@ -19,11 +17,9 @@ import (
 //
 //nolint:revive
 type MCPToolsContext struct {
-	AppCtx             *api.AppContext       // application context
-	Logger             *slog.Logger          // discard logger
+	*runcontext.RunContext
+	AppContext         *api.AppContext       // application identity
 	Flags              *flags.Flags          // global flags
-	ChartFS            *chartfs.ChartFS      // embedded filesystem
-	Kube               *k8s.Kube             // kubernetes client
 	IntegrationManager *integrations.Manager // integrations manager
 	Image              string                // installer's container image
 }
@@ -32,19 +28,21 @@ type MCPToolsContext struct {
 // MCP server operation.
 func NewMCPToolsContext(
 	appCtx *api.AppContext,
+	runCtx *runcontext.RunContext,
 	f *flags.Flags,
-	cfs *chartfs.ChartFS,
-	kube *k8s.Kube,
 	integrationManager *integrations.Manager,
 	image string,
 ) MCPToolsContext {
-	return MCPToolsContext{
-		AppCtx: appCtx,
+	mcpRunCtx := &runcontext.RunContext{
+		Kube:    runCtx.Kube,
+		ChartFS: runCtx.ChartFS,
 		// CRITICAL: Logger MUST use io.Discard for MCP STDIO protocol compatibility
-		Logger:             f.GetLogger(io.Discard),
+		Logger: f.GetLogger(io.Discard),
+	}
+	return MCPToolsContext{
+		RunContext:         mcpRunCtx,
+		AppContext:         appCtx,
 		Flags:              f,
-		ChartFS:            cfs,
-		Kube:               kube,
 		IntegrationManager: integrationManager,
 		Image:              image,
 	}
