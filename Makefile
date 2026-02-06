@@ -66,7 +66,7 @@ test: test-unit
 # Runs the unit tests.
 .PHONY: test-unit
 test-unit:
-	go test $(GOFLAGS_TEST) $(PKG) $(ARGS)
+	go test $(GOFLAGS_TEST) -coverprofile=coverage.out -covermode=atomic $(PKG) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.
 .PHONY: lint
