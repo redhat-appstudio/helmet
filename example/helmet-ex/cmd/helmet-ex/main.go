@@ -6,6 +6,7 @@ import (
 
 	"github.com/redhat-appstudio/helmet/api"
 	"github.com/redhat-appstudio/helmet/example/helmet-ex/installer"
+	"github.com/redhat-appstudio/helmet/example/helmet-ex/integrations"
 	"github.com/redhat-appstudio/helmet/framework"
 )
 
@@ -29,15 +30,15 @@ func main() {
 	// 3. Build MCP image reference
 	mcpImage := buildMCPImage()
 
-	// 4. Create application with framework options
-	// NewAppFromTarball handles TarFS, OverlayFS, ChartFS internally
+	// 4. Create application with framework options (GitHub URLs via CustomURLProvider; see framework/integrations.go)
+	appIntegrations := framework.StandardIntegrations()
+	appIntegrations = framework.WithGitHubURLProvider(appIntegrations, integrations.CustomURLProvider{})
 	app, err := framework.NewAppFromTarball(
 		appCtx,
 		installer.InstallerTarball,
 		cwd,
-		framework.WithIntegrations(framework.StandardIntegrations()...),
+		framework.WithIntegrations(appIntegrations...),
 		framework.WithMCPImage(mcpImage),
-		// Note: StandardMCPToolsBuilder is the default, no need to specify
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

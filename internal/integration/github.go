@@ -16,12 +16,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// URLProvider defines an interface for providing GitHub App URLs.
+// Implementations can use the config.Config and context to derive URLs from
+// cluster configuration or other sources.
+type URLProvider interface {
+	// GetCallbackURL returns the GitHub App callback URL (optional; may return "").
+	GetCallbackURL(ctx context.Context, cfg *config.Config) string
+	// GetWebhookURL returns the GitHub App webhook URL.
+	GetWebhookURL(ctx context.Context, cfg *config.Config) string
+	// GetHomepageURL returns the GitHub App homepage URL.
+	GetHomepageURL(ctx context.Context, cfg *config.Config) string
+}
+
 // GitHub represents the GitHub App integration attributes. It collects, validates
 // and issues the attributes to the GitHub App API.
 type GitHub struct {
 	logger *slog.Logger         // application logger
 	kube   *k8s.Kube            // kubernetes client
 	client *githubapp.GitHubApp // github API client
+
+	urlProvider URLProvider // optional URL configuration provider
 
 	description string // application description
 	callbackURL string // github app callback URL
@@ -60,6 +74,12 @@ func (g *GitHub) PersistentFlags(c *cobra.Command) {
 	g.client.PersistentFlags(c)
 }
 
+// SetURLProvider sets an optional URLProvider to customize GitHub App URLs.
+// The provider is consulted during Data() for any URL not already set by flags.
+func (g *GitHub) SetURLProvider(provider URLProvider) {
+	g.urlProvider = provider
+}
+
 // SetArgument sets the GitHub App name.
 func (g *GitHub) SetArgument(k, v string) error {
 	if k != GitHubAppName {
@@ -95,54 +115,47 @@ func (g *GitHub) Type() corev1.SecretType {
 	return corev1.SecretTypeOpaque
 }
 
-// setClusterURLs sets the cluster URLs for the integration. It uses the TSSC
-// configuration to identify Developer Hub's namespace, and queries the cluster to
-// obtain its ingress domain.
+// setClusterURLs resolves GitHub App URLs from flags first, then from the
+// optional URLProvider. It validates that required URLs (webhook, homepage) are set.
 func (g *GitHub) setClusterURLs(
 	ctx context.Context,
 	cfg *config.Config,
 ) error {
-	developerHub, err := cfg.GetProduct(config.DeveloperHub)
-	if err != nil {
-		return err
-	}
-	ingressDomain, err := k8s.GetOpenShiftIngressDomain(ctx, g.kube)
-	if err != nil {
-		return err
+	if g.urlProvider != nil {
+		if g.callbackURL == "" {
+			if url := g.urlProvider.GetCallbackURL(ctx, cfg); url != "" {
+				g.callbackURL = url
+			}
+		}
+		if g.webhookURL == "" {
+			if url := g.urlProvider.GetWebhookURL(ctx, cfg); url != "" {
+				g.webhookURL = url
+			}
+		}
+		if g.homepageURL == "" {
+			if url := g.urlProvider.GetHomepageURL(ctx, cfg); url != "" {
+				g.homepageURL = url
+			}
+		}
 	}
 
-	if g.callbackURL == "" {
-		g.callbackURL = fmt.Sprintf(
-			"https://backstage-developer-hub-%s.%s/api/auth/github/handler/frame",
-			developerHub.GetNamespace(),
-			ingressDomain,
-		)
+	if g.webhookURL == "" || g.homepageURL == "" {
+		return fmt.Errorf("GitHub App webhook and homepage URLs must be provided via flags or URLProvider")
 	}
-	if g.webhookURL == "" {
-		g.webhookURL = fmt.Sprintf(
-			"https://pipelines-as-code-controller-%s.%s",
-			"openshift-pipelines",
-			ingressDomain,
-		)
-	}
-	if g.homepageURL == "" {
-		g.homepageURL = fmt.Sprintf(
-			"https://backstage-developer-hub-%s.%s",
-			developerHub.GetNamespace(),
-			ingressDomain,
-		)
-	}
+
 	return nil
 }
 
 // generateAppManifest creates the application manifest for the GitHub-App.
 func (g *GitHub) generateAppManifest() scrape.AppManifest {
+	var callbackURLs []string
+	if g.callbackURL != "" {
+		callbackURLs = []string{g.callbackURL}
+	}
 	return scrape.AppManifest{
-		Name: github.Ptr(g.name),
-		URL:  github.Ptr(g.homepageURL),
-		CallbackURLs: []string{
-			g.callbackURL,
-		},
+		Name:           github.Ptr(g.name),
+		URL:            github.Ptr(g.homepageURL),
+		CallbackURLs:   callbackURLs,
 		Description:    github.Ptr(g.description),
 		HookAttributes: map[string]string{"url": g.webhookURL},
 		Public:         github.Ptr(true),

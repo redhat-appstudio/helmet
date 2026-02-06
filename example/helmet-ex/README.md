@@ -30,11 +30,11 @@ The `helmet-ex` application showcases:
 make build
 
 # View all targets
-make help
+make example-help
 ```
 
 The build process:
-1. Creates an uncompressed tarball from the `installer` directory
+1. Creates an uncompressed tarball from the `installer/` directory
 2. Embeds the tarball and instructions.md into the binary
 3. Injects version and commit ID via ldflags
 
@@ -89,7 +89,7 @@ The build process:
 ./bin/helmet-ex deploy --log-level=debug
 ```
 
-### Integration Configuration
+### Standard Integrations
 
 ```bash
 # List available integrations
@@ -99,7 +99,6 @@ The build process:
 ./bin/helmet-ex integration acs --help
 ```
 
-All integrations:
 - `acs` - Red Hat Advanced Cluster Security
 - `artifactory` - JFrog Artifactory
 - `azure` - Azure cloud provider
@@ -111,6 +110,10 @@ All integrations:
 - `quay` - Quay container registry
 - `trusted-artifact-signer` - Trusted Artifact Signer
 - `trustification` - Trustification service
+
+### Custom Integrations Configuration
+
+**GitHub integration:** Webhook and homepage URLs are required; callback URL is optional. This example wires a **CustomURLProvider** (`integrations/custom_url_provider.go`) so the GitHub integration gets URLs without requiring flags. Command-line flags (e.g. `--webhook-url`, `--homepage-url`) override the provider when set.
 
 ### MCP Server
 
@@ -229,18 +232,18 @@ Injected via ldflags:
 helmet-ex/
 ├── cmd/
 │   └── helmet-ex/
-│       └── main.go           # Application entry point
+│       └── main.go             # Application entry point
 ├── installer/
-│   ├── charts/               # Folder with the installer's Helm charts
-│   ├── config.yaml           # Default installer configuration
-│   ├── embed.go              # Embed directives
-│   ├── installer.tar         # Generated tarball (git-ignored)
-│   ├── instructions.md       # MCP server guidance
-│   └── values.yaml.tpl       # Template file rendered as `values.yaml` and passed to Helm at deployment time
-├── .gitignore                # Git ignore rules
-├── go.mod                    # Go module (uses replace directive)
-├── Makefile                  # Build automation
-└── README.md                 # This file
+│   ├── charts/                 # Folder with the installer's Helm charts
+│   ├── config.yaml             # Default installer configuration
+│   ├── embed.go                # Embed directives
+│   ├── installer.tar           # Generated tarball (git-ignored)
+│   ├── instructions.md         # MCP server guidance
+│   └── values.yaml.tpl         # Template file rendered as `values.yaml` and passed to Helm at deployment time
+├── integrations/
+│   └── custom_url_provider.go  # GitHub URLProvider for this example
+├── .gitignore                  # Git ignore rules
+└── Makefile                    # Build automation
 ```
 
 ## Troubleshooting

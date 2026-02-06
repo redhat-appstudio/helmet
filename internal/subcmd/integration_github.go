@@ -5,11 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/redhat-appstudio/helmet/api"
-
 	"github.com/redhat-appstudio/helmet/internal/config"
 	"github.com/redhat-appstudio/helmet/internal/integration"
 	"github.com/redhat-appstudio/helmet/internal/k8s"
-
 	"github.com/spf13/cobra"
 )
 
