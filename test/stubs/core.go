@@ -12,5 +12,8 @@ func NamespaceRuntimeObject(name string) runtime.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+		Status: corev1.NamespaceStatus{
+			Phase: corev1.NamespaceActive,
+		},
 	}
 }

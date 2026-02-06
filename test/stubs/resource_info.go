@@ -37,3 +37,15 @@ func ProjectRequestResourceInfo(namespace, name string) *resource.Info {
 		}),
 	}
 }
+
+// NamespaceResourceInfo returns a resource.Info with a Namespace object.
+func NamespaceResourceInfo(name string) *resource.Info {
+	return &resource.Info{
+		Name: name,
+		Object: runtime.Object(&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}),
+	}
+}

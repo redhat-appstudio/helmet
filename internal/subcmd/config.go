@@ -199,8 +199,8 @@ func (c *Config) runCreate() error {
 		return nil
 	}
 
-	c.log().Debug("Making sure the OpenShift project is created")
-	if err = k8s.EnsureOpenShiftProject(
+	c.log().Debug("Making sure the namespace is created")
+	if err = k8s.EnsureNamespace(
 		c.cmd.Context(),
 		c.log(),
 		c.kube,

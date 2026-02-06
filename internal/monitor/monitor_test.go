@@ -33,6 +33,11 @@ func TestMonitorCollect(t *testing.T) {
 		resourceInfo: stubs.ProjectRequestResourceInfo("default", "test"),
 		queueLength:  0,
 		wantErr:      false,
+	}, {
+		name:         "Namespace resource",
+		resourceInfo: stubs.NamespaceResourceInfo("test"),
+		queueLength:  0,
+		wantErr:      false,
 	}}
 
 	for _, tt := range tests {

@@ -144,8 +144,8 @@ Unable to retrieve the configuration from the cluster!`,
 	}
 
 	// Before creating the cluster configuration, it needs to ensure the OpenShift
-	// project exists.
-	if err := k8s.EnsureOpenShiftProject(
+	// project or Kubernetes namespace exists.
+	if err := k8s.EnsureNamespace(
 		ctx,
 		c.logger,
 		c.kube,

@@ -116,7 +116,6 @@ github-release: \
 	github-preflight \
 	github-release-create
 
-#
 # Goreleaser
 #
 
@@ -136,6 +135,35 @@ goreleaser-release: github-preflight
 	go tool goreleaser release --clean
 
 #
+# KinD Cluster Management
+#
+
+KIND_CLUSTER_NAME ?= helmet-test
+KIND_CONFIG ?= test/kind-cluster.yaml
+
+# Creates a KinD cluster for testing
+.PHONY: kind-up
+kind-up:
+	@echo "Creating KinD cluster '$(KIND_CLUSTER_NAME)'..."
+	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG) --wait 60s
+	@echo "KinD cluster '$(KIND_CLUSTER_NAME)' is ready!"
+	@echo "Run: kubectl cluster-info --context kind-$(KIND_CLUSTER_NAME)"
+
+# Deletes the KinD cluster
+.PHONY: kind-down
+kind-down:
+	@echo "Deleting KinD cluster '$(KIND_CLUSTER_NAME)'..."
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
+	@echo "KinD cluster '$(KIND_CLUSTER_NAME)' deleted."
+
+# Shows KinD cluster status
+.PHONY: kind-status
+kind-status:
+	@kind get clusters 2>/dev/null | grep -q "$(KIND_CLUSTER_NAME)" && \
+		echo "KinD cluster '$(KIND_CLUSTER_NAME)' is running" || \
+		echo "KinD cluster '$(KIND_CLUSTER_NAME)' is not running"
+
+#
 # Show help
 #
 .PHONY: help
@@ -149,4 +177,7 @@ help: example-help
 	@echo "  lint                    - Run linting (includes gosec)"
 	@echo "  security                - Run govulncheck vulnerability scan"
 	@echo "  test                    - Run tests"
+	@echo "  kind-up                 - Create KinD cluster"
+	@echo "  kind-down               - Delete the KinD cluster"
+	@echo "  kind-status             - Show KinD cluster status"
 	@echo "  help                    - Show help"
