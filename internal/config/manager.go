@@ -18,8 +18,8 @@ import (
 //
 //nolint:revive
 type ConfigMapManager struct {
-	kube *k8s.Kube // kubernetes client
-	name string    // configmap name
+	kube k8s.Interface // kubernetes client
+	name string        // configmap name
 }
 
 // Selector label selector for installer configuration.
@@ -166,7 +166,7 @@ func (m *ConfigMapManager) Delete(ctx context.Context) error {
 
 // NewConfigMapManager instantiates the ConfigMapManager.
 // The appName parameter is used to generate the ConfigMap name as "{appName}-config".
-func NewConfigMapManager(kube *k8s.Kube, appName string) *ConfigMapManager {
+func NewConfigMapManager(kube k8s.Interface, appName string) *ConfigMapManager {
 	return &ConfigMapManager{
 		kube: kube,
 		name: fmt.Sprintf("%s-config", appName),

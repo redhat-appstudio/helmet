@@ -24,9 +24,9 @@ var ErrJobNotFound = errors.New("job not found")
 // this installer container image on a pod. The idea is to allow a non-blocking
 // installation process for the MCP server.
 type Job struct {
-	kube    *k8s.Kube // kubernetes client
-	appName string    // common name for resources
-	retries int32     // job retries
+	kube    k8s.Interface // kubernetes client
+	appName string        // common name for resources
+	retries int32         // job retries
 }
 
 // LabelSelector returns the label selector for installer jobs.
@@ -301,7 +301,7 @@ func (j *Job) Run(
 }
 
 // NewJob instantiates a new Job object.
-func NewJob(appCtx *api.AppContext, kube *k8s.Kube) *Job {
+func NewJob(appCtx *api.AppContext, kube k8s.Interface) *Job {
 	return &Job{
 		kube:    kube,
 		appName: appCtx.Name,

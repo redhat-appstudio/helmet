@@ -17,10 +17,10 @@ import (
 // Integration represents a generic Kubernetes Secret manager for integrations, it
 // holds the common actions integrations will perform against secrets.
 type Integration struct {
-	logger *slog.Logger // application logger
-	kube   *k8s.Kube    // kubernetes client
-	name   string       // kubernetes secret name
-	data   Interface    // provides secret data
+	logger *slog.Logger  // application logger
+	kube   k8s.Interface // kubernetes client
+	name   string        // kubernetes secret name
+	data   Interface     // provides secret data
 
 	force bool // overwrite the existing secret
 }
@@ -140,7 +140,7 @@ func (i *Integration) Delete(ctx context.Context, cfg *config.Config) error {
 // provider to generate the Kubernetes Secret payload.
 func NewSecret(
 	logger *slog.Logger,
-	kube *k8s.Kube,
+	kube k8s.Interface,
 	name string,
 	data Interface,
 ) *Integration {

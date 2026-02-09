@@ -45,7 +45,7 @@ func getMinorVersion(version string) (string, error) {
 
 // SetOpenShift sets the OpenShift context variables.
 // On vanilla Kubernetes clusters, empty defaults are used.
-func (v *Variables) SetOpenShift(ctx context.Context, kube *k8s.Kube) error {
+func (v *Variables) SetOpenShift(ctx context.Context, kube k8s.Interface) error {
 	// Try to get OpenShift-specific values, but don't fail if unavailable
 	ingressDomain, domainErr := k8s.GetOpenShiftIngressDomain(ctx, kube)
 	ingressRouterCA, caErr := k8s.GetOpenShiftIngressRouteCA(ctx, kube)

@@ -166,7 +166,7 @@ func (c *Config) runCreate() error {
 		return err
 	}
 
-	// Ensuring the configuration is compabile with the Helm charts available for
+	// Ensuring the configuration is compatible with the Helm charts available for
 	// the installer, product associated charts and dependencies are verified.
 	c.log().Debug("Verifying installer Helm charts")
 	charts, err := c.runCtx.ChartFS.GetAllCharts()
@@ -190,16 +190,13 @@ func (c *Config) runCreate() error {
 			c.manager.Name(),
 			config.Selector,
 		)
-		if err != nil {
-			return err
-		}
 		fmt.Print(cfg.String())
 		return nil
 	}
 
 	ctx := c.cmd.Context()
 	c.log().Debug("Making sure the namespace is created")
-	if err = k8s.EnsureOpenShiftProject(
+	if err = k8s.EnsureNamespace(
 		ctx,
 		c.log(),
 		c.runCtx.Kube,

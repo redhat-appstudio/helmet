@@ -197,7 +197,7 @@ func (h *Helm) GetNotes() (string, error) {
 func NewHelm(
 	logger *slog.Logger,
 	f *flags.Flags,
-	kube *k8s.Kube,
+	kube k8s.Interface,
 	namespace string,
 	chart *chart.Chart,
 ) (*Helm, error) {

@@ -13,7 +13,7 @@ import (
 var (
 	ACSModule = api.IntegrationModule{
 		Name: string(integrations.ACS),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewACS()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -23,7 +23,7 @@ var (
 
 	ArtifactoryModule = api.IntegrationModule{
 		Name: string(integrations.Artifactory),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewContainerRegistry("")
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -33,7 +33,7 @@ var (
 
 	AzureModule = api.IntegrationModule{
 		Name: string(integrations.Azure),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewAzure()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -43,7 +43,7 @@ var (
 
 	BitBucketModule = api.IntegrationModule{
 		Name: string(integrations.BitBucket),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewBitBucket()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -53,7 +53,7 @@ var (
 
 	GitHubModule = api.IntegrationModule{
 		Name: string(integrations.GitHub),
-		Init: func(l *slog.Logger, k *k8s.Kube) integration.Interface {
+		Init: func(l *slog.Logger, k k8s.Interface) integration.Interface {
 			return integration.NewGitHub(l, k)
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -63,7 +63,7 @@ var (
 
 	GitLabModule = api.IntegrationModule{
 		Name: string(integrations.GitLab),
-		Init: func(l *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(l *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewGitLab(l)
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -73,7 +73,7 @@ var (
 
 	JenkinsModule = api.IntegrationModule{
 		Name: string(integrations.Jenkins),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewJenkins()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -83,7 +83,7 @@ var (
 
 	NexusModule = api.IntegrationModule{
 		Name: string(integrations.Nexus),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewContainerRegistry("")
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -93,7 +93,7 @@ var (
 
 	QuayModule = api.IntegrationModule{
 		Name: string(integrations.Quay),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewContainerRegistry(integration.QuayURL)
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -103,7 +103,7 @@ var (
 
 	TrustedArtifactSignerModule = api.IntegrationModule{
 		Name: string(integrations.TrustedArtifactSigner),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewTrustedArtifactSigner()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
@@ -113,7 +113,7 @@ var (
 
 	TrustificationModule = api.IntegrationModule{
 		Name: string(integrations.Trustification),
-		Init: func(_ *slog.Logger, _ *k8s.Kube) integration.Interface {
+		Init: func(_ *slog.Logger, _ k8s.Interface) integration.Interface {
 			return integration.NewTrustification()
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {

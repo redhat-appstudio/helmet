@@ -16,7 +16,7 @@ type IntegrationModule struct {
 	Name string
 
 	// Init creates the integration business logic instance.
-	Init func(*slog.Logger, *k8s.Kube) integration.Interface
+	Init func(*slog.Logger, k8s.Interface) integration.Interface
 
 	// Command creates the CLI subcommand for this integration.
 	// It receives the application context, run context, and initialized integration wrapper.

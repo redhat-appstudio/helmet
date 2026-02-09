@@ -20,7 +20,7 @@ import (
 // and issues the attributes to the GitHub App API.
 type GitHub struct {
 	logger *slog.Logger         // application logger
-	kube   *k8s.Kube            // kubernetes client
+	kube   k8s.Interface        // kubernetes client
 	client *githubapp.GitHubApp // github API client
 
 	description string // application description
@@ -108,7 +108,15 @@ func (g *GitHub) setClusterURLs(
 	}
 	ingressDomain, err := k8s.GetOpenShiftIngressDomain(ctx, g.kube)
 	if err != nil {
-		return err
+		if g.callbackURL == "" || g.webhookURL == "" || g.homepageURL == "" {
+			return fmt.Errorf(
+				"ingress domain unavailable (non-OpenShift cluster); "+
+					"provide --callback-url, --webhook-url, and --homepage-url "+
+					"explicitly: %w",
+				err,
+			)
+		}
+		return nil
 	}
 
 	if g.callbackURL == "" {
@@ -252,7 +260,7 @@ func (g *GitHub) Data(
 }
 
 // NewGitHub instances a new GitHub App integration.
-func NewGitHub(logger *slog.Logger, kube *k8s.Kube) *GitHub {
+func NewGitHub(logger *slog.Logger, kube k8s.Interface) *GitHub {
 	return &GitHub{
 		logger: logger,
 		kube:   kube,

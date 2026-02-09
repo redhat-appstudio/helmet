@@ -26,7 +26,7 @@ type ConfigTools struct {
 	logger  *slog.Logger             // application logger
 	cfs     *chartfs.ChartFS         // embedded filesystem
 	cm      *config.ConfigMapManager // cluster config manager
-	kube    *k8s.Kube                // kubernetes client
+	kube    k8s.Interface            // kubernetes client
 
 	defaultCfg *config.Config // default config (embedded)
 }
@@ -573,7 +573,7 @@ func NewConfigTools(
 	appCtx *api.AppContext,
 	logger *slog.Logger,
 	cfs *chartfs.ChartFS,
-	kube *k8s.Kube,
+	kube k8s.Interface,
 	cm *config.ConfigMapManager,
 ) (*ConfigTools, error) {
 	// Loading the default configuration to serve as a reference for MCP tools.
