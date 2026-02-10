@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/redhat-appstudio/helmet/internal/config"
+	"github.com/redhat-appstudio/helmet/internal/runcontext"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -78,6 +79,7 @@ func (t *TrustedArtifactSigner) Validate() error {
 // Data returns the Kubernetes secret data for this integration.
 func (t *TrustedArtifactSigner) Data(
 	_ context.Context,
+	_ *runcontext.RunContext,
 	_ *config.Config,
 ) (map[string][]byte, error) {
 	return map[string][]byte{

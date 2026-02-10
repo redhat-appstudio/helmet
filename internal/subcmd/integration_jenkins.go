@@ -48,7 +48,7 @@ func (j *IntegrationJenkins) Validate() error {
 
 // Run creates or updates the Jenkins integration secret.
 func (j *IntegrationJenkins) Run() error {
-	return j.integration.Create(j.cmd.Context(), j.cfg)
+	return j.integration.Create(j.cmd.Context(), j.runCtx, j.cfg)
 }
 
 // NewIntegrationJenkins creates the sub-command for the "integration jenkins"

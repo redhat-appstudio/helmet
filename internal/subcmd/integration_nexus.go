@@ -48,7 +48,7 @@ func (n *IntegrationNexus) Validate() error {
 
 // Run creates or updates the Nexus integration secret.
 func (n *IntegrationNexus) Run() error {
-	return n.integration.Create(n.cmd.Context(), n.cfg)
+	return n.integration.Create(n.cmd.Context(), n.runCtx, n.cfg)
 }
 
 // NewIntegrationNexus creates the sub-command for the "integration nexus"

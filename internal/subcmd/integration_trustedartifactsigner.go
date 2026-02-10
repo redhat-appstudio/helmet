@@ -46,7 +46,7 @@ func (t *IntegrationTrustedArtifactSigner) Validate() error {
 
 // Run creates or updates the TrustedArtifactSigner integration secret.
 func (t *IntegrationTrustedArtifactSigner) Run() error {
-	return t.integration.Create(t.cmd.Context(), t.cfg)
+	return t.integration.Create(t.cmd.Context(), t.runCtx, t.cfg)
 }
 
 // NewIntegrationTrustedArtifactSigner creates the sub-command for the "integration

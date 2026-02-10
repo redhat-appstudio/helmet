@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/redhat-appstudio/helmet/internal/config"
+	"github.com/redhat-appstudio/helmet/internal/runcontext"
 
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -132,6 +133,7 @@ func (g *GitLab) getCurrentGitLabUser() (string, error) {
 // username obtained on the fly.
 func (g *GitLab) Data(
 	_ context.Context,
+	_ *runcontext.RunContext,
 	_ *config.Config,
 ) (map[string][]byte, error) {
 	username, err := g.getCurrentGitLabUser()

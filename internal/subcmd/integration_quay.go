@@ -60,7 +60,7 @@ func (q *IntegrationQuay) Validate() error {
 
 // Run creates or updates the Quay integration secret.
 func (q *IntegrationQuay) Run() error {
-	return q.integration.Create(q.cmd.Context(), q.cfg)
+	return q.integration.Create(q.cmd.Context(), q.runCtx, q.cfg)
 }
 
 // NewIntegrationQuay creates the sub-command for the "integration quay"

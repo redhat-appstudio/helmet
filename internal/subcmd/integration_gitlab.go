@@ -48,7 +48,7 @@ func (g *IntegrationGitLab) Validate() error {
 
 // Run creates or updates the GitLab integration secret.
 func (g *IntegrationGitLab) Run() error {
-	return g.integration.Create(g.cmd.Context(), g.cfg)
+	return g.integration.Create(g.cmd.Context(), g.runCtx, g.cfg)
 }
 
 // NewIntegrationGitLab creates the sub-command for the "integration gitlab"

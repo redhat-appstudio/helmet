@@ -53,8 +53,8 @@ var (
 
 	GitHubModule = api.IntegrationModule{
 		Name: string(integrations.GitHub),
-		Init: func(l *slog.Logger, k k8s.Interface) integration.Interface {
-			return integration.NewGitHub(l, k)
+		Init: func(l *slog.Logger, _ k8s.Interface) integration.Interface {
+			return integration.NewGitHub(l)
 		},
 		Command: func(appCtx *api.AppContext, runCtx *runcontext.RunContext, i *integration.Integration) api.SubCommand {
 			return NewIntegrationGitHub(appCtx, runCtx, i)

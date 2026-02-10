@@ -47,7 +47,7 @@ func (a *IntegrationAzure) Validate() error {
 
 // Run creates or updates the Azure integration secret.
 func (a *IntegrationAzure) Run() error {
-	return a.integration.Create(a.cmd.Context(), a.cfg)
+	return a.integration.Create(a.cmd.Context(), a.runCtx, a.cfg)
 }
 
 // NewIntegrationAzure creates the sub-command for the "integration azure"

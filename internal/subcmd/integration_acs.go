@@ -48,7 +48,7 @@ func (a *IntegrationACS) Validate() error {
 
 // Run creates or updates the ACS integration secret.
 func (a *IntegrationACS) Run() error {
-	return a.integration.Create(a.cmd.Context(), a.cfg)
+	return a.integration.Create(a.cmd.Context(), a.runCtx, a.cfg)
 }
 
 // NewIntegrationACS creates the sub-command for the "integration acs"

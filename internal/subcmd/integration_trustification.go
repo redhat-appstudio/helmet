@@ -48,7 +48,7 @@ func (t *IntegrationTrustification) Validate() error {
 
 // Run creates or updates the Trustification integration secret.
 func (t *IntegrationTrustification) Run() error {
-	return t.integration.Create(t.cmd.Context(), t.cfg)
+	return t.integration.Create(t.cmd.Context(), t.runCtx, t.cfg)
 }
 
 // NewIntegrationTrustification creates the sub-command for the "integration

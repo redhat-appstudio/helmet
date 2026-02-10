@@ -48,7 +48,7 @@ func (b *IntegrationBitBucket) Validate() error {
 
 // Run creates or updates the BitBucket integration secret.
 func (b *IntegrationBitBucket) Run() error {
-	return b.integration.Create(b.cmd.Context(), b.cfg)
+	return b.integration.Create(b.cmd.Context(), b.runCtx, b.cfg)
 }
 
 // NewIntegrationBitBucket creates the sub-command for the "integration bitbucket"

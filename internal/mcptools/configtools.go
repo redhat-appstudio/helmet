@@ -56,7 +56,7 @@ const (
 	PropertiesArg = "properties"
 )
 
-// getHandler similar to "config --get" subcommand it returns a existing
+// getHandler similar to "config --get" subcommand it returns an existing
 // cluster configuration. If no such configuration exists it returns the
 // installer's default.
 func (c *ConfigTools) getHandler(
@@ -465,8 +465,7 @@ exists yet.`,
 			mcp.WithString(
 				NamespaceArg,
 				mcp.Description(fmt.Sprintf(`
-The main namespace for %s ('.tssc.namespace'), where Red Hat Developer Hub (DH)
-and other fundamental services will be deployed.`,
+The main namespace for %s ('.tssc.namespace'), where services will be deployed by default.`,
 					c.appName,
 				)),
 				mcp.DefaultString(c.defaultCfg.Namespace()),

@@ -48,7 +48,7 @@ func (a *IntegrationArtifactory) Validate() error {
 
 // Run creates or updates the Artifactory integration secret.
 func (a *IntegrationArtifactory) Run() error {
-	return a.integration.Create(a.cmd.Context(), a.cfg)
+	return a.integration.Create(a.cmd.Context(), a.runCtx, a.cfg)
 }
 
 // NewIntegrationArtifactory creates the sub-command for the "integration artifactory"
