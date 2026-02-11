@@ -1,5 +1,8 @@
 # Primary source code directories.
 PKG ?= ./api/... ./framework/... ./internal/...
+# E2E test package.
+PKG_E2E ?= ./test/e2e
+PKG_E2E_CLI := $(PKG_E2E)/cli/...
 
 # Golang general flags for build and testing.
 GOFLAGS ?= -v
@@ -45,7 +48,7 @@ GITHUB_TOKEN ?= ${GITHUB_TOKEN:-}
 #
 # Build
 #
-
+ 
 # Build the example application.
 .PHONY: build
 build: $(EXAMPLE_BIN)
@@ -106,6 +109,11 @@ tool-gh:
 tool-goreleaser:
 	@go tool goreleaser --version
 
+# Executes ginkgo via go tool (version from go.mod).
+.PHONY: tool-ginkgo
+tool-ginkgo:
+	@go tool ginkgo version
+
 # Executes govulncheck via go tool (version from go.mod).
 .PHONY: tool-govulncheck
 tool-govulncheck:
@@ -115,12 +123,19 @@ tool-govulncheck:
 # Test and Lint
 #
 
-test: test-unit
-
 # Runs the unit tests.
 .PHONY: test-unit
 test-unit:
-	go test $(GOFLAGS_TEST) -coverprofile=coverage.out -covermode=atomic $(PKG) $(ARGS)
+	go test $(GOFLAGS_TEST) \
+		-coverprofile=coverage.out \
+		-covermode=atomic \
+		$(PKG) $(PKG_E2E) \
+		$(ARGS)
+
+# Runs the E2E CLI tests (requires KinD cluster).
+.PHONY: test-e2e-cli
+test-e2e-cli: build
+	go tool ginkgo -v --fail-fast $(PKG_E2E_CLI) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.
 .PHONY: lint
@@ -229,6 +244,7 @@ help:
 	@echo "  installer-tarball        - Generate installer tarball"
 	@echo "  run                      - Build and run example (use ARGS='...')"
 	@echo "  test                     - Run tests"
+	@echo "  test-e2e-cli             - Run E2E CLI tests (requires KinD)"
 	@echo "  lint                     - Run linting"
 	@echo "  security                 - Run govulncheck vulnerability scan"
 	@echo "  github-release-create    - Create GitHub release (requires 'gh')"

@@ -1,0 +1,28 @@
+---
+name: E2E Tests
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/go
+      - uses: ./.github/actions/kind
+      - run: make test-e2e-cli

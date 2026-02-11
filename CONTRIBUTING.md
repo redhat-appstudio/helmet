@@ -51,16 +51,66 @@ By default the container is build using `podman`, you can alternatively use `bui
 
 # Testing
 
-Unit testing is done using the `go test` command, you can run the tests with the following target:
+## Unit Tests
+
+Unit tests cover the core packages (`api/`, `framework/`, `internal/`). Assertions use [`gomega`][gomega]:
 
 ```bash
 make test-unit
 ```
 
-Alternatively, run all tests with:
+To run a specific test:
 
 ```bash
-make test
+make test-unit ARGS='-run=TestName'
+```
+
+## E2E CLI Tests
+
+End-to-end tests exercise the full installer workflow against a live Kubernetes cluster using [Ginkgo v2][ginkgo]. They live in `test/e2e/cli/` and validate the config-create, integration, topology, deploy, and release-checking pipeline.
+
+The tests require a Kubernetes cluster accessible via `KUBECONFIG`. You can use any cluster you have available, or create a local [KinD][kind] cluster:
+
+```bash
+make kind-up       # creates a local KinD cluster (optional)
+```
+
+Then run the E2E CLI suite:
+
+```bash
+make test-e2e-cli
+```
+
+To tear down a KinD cluster:
+
+```bash
+make kind-down
+```
+
+## Linting
+
+Static analysis uses [`golangci-lint`][golangciLint] (version pinned in `go.mod` via the `tool` directive):
+
+```bash
+make lint
+```
+
+## Security
+
+Vulnerability scanning uses [`govulncheck`][govulncheck] to check dependencies for known CVEs:
+
+```bash
+make security
+```
+
+## All Checks
+
+Before submitting a pull request, run:
+
+```bash
+make test-unit
+make lint
+make security
 ```
 
 # Running
@@ -163,3 +213,8 @@ make snapshot
 [gnuTar]: https://www.gnu.org/software/tar
 [mcpTransports]: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 [delveInstallation]: https://github.com/go-delve/delve/tree/master/Documentation/installation
+[gomega]: https://onsi.github.io/gomega
+[ginkgo]: https://onsi.github.io/ginkgo
+[kind]: https://kind.sigs.k8s.io
+[golangciLint]: https://golangci-lint.run
+[govulncheck]: https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck
