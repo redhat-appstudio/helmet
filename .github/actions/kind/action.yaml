@@ -1,0 +1,13 @@
+---
+name: KinD
+description: 'Create KinD cluster for E2E tests'
+
+runs:
+  using: composite
+  steps:
+    - name: Create KinD cluster
+      uses: helm/kind-action@v1
+      with:
+        cluster_name: helmet-test
+        config: test/kind-cluster.yaml
+        wait: 60s

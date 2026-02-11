@@ -32,8 +32,10 @@ func TestNewChartFS(t *testing.T) {
 		for _, tmpl := range chart.Templates {
 			names = append(names, tmpl.Name)
 		}
-		g.Expect(len(names)).To(o.BeNumerically("==", 1))
+		g.Expect(len(names)).To(o.BeNumerically("==", 3))
 		g.Expect(names).To(o.ContainElement("templates/NOTES.txt"))
+		g.Expect(names).To(o.ContainElement("templates/_copy-scripts.tpl"))
+		g.Expect(names).To(o.ContainElement("templates/hooks/deploy-order.yaml"))
 	})
 
 	t.Run("GetAllCharts", func(t *testing.T) {
