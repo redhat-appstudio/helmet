@@ -43,7 +43,7 @@ GITHUB_REF_NAME ?= ${GITHUB_REF_NAME:-}
 GITHUB_TOKEN ?= ${GITHUB_TOKEN:-}
 
 # Container image configuration, either podman or docker.
-CONTAINER_CLI ?= docker
+CONTAINER_CLI ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 IMAGE_REPOSITORY ?= localhost:5000
 IMAGE_NAMESPACE ?= helmet
 IMAGE_TAG ?= $(COMMIT_ID)
@@ -108,7 +108,7 @@ image: installer-tarball
 # Pushes the container image to the configured registry.
 .PHONY: image-push
 image-push:
-	$(CONTAINER_CLI) push $(IMAGE)
+	$(CONTAINER_CLI) push --tls-verify=false $(IMAGE) $(ARGS)
 
 #
 # Tools
