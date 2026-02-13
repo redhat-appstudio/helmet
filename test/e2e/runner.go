@@ -1,9 +1,11 @@
 package e2e
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,18 +22,26 @@ type Runner struct {
 	namespace   string
 }
 
+// newCmd creates an *exec.Cmd targeting the helmet-ex binary with the given
+// arguments. The working directory and environment are set to the project root
+// so all callers share the same setup.
+func (r *Runner) newCmd(ctx context.Context, args ...string) *exec.Cmd {
+	bin := filepath.Join(r.projectRoot, r.binaryPath)
+	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd.Dir = r.projectRoot
+	cmd.Env = os.Environ()
+	return cmd
+}
+
 // run executes the helmet-ex binary with the specified arguments, capturing
 // stdout/stderr for debugging. The child process working directory is set to
 // the project root.
 func (r *Runner) run(ctx context.Context, args ...string) error {
-	bin := filepath.Join(r.projectRoot, r.binaryPath)
-	cmd := exec.CommandContext(ctx, bin, args...)
-	cmd.Dir = r.projectRoot
+	cmd := r.newCmd(ctx, args...)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	cmd.Env = os.Environ()
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf(
@@ -76,6 +86,34 @@ func (r *Runner) Topology(ctx context.Context) error {
 // Deploy executes: "helmet-ex deploy".
 func (r *Runner) Deploy(ctx context.Context) error {
 	return r.run(ctx, "deploy")
+}
+
+// StartMCPServer launches the MCP server as a long-lived subprocess and returns a
+// client connected to its STDIO pipes. The Runner's projectRoot and binaryPath
+// are reused; the image argument is passed as --image to the mcp-server
+// subcommand.
+func (r *Runner) StartMCPServer(
+	ctx context.Context,
+	image string,
+) (*MCPClient, error) {
+	cmd := r.newCmd(ctx, "mcp-server", "--image", image)
+	cmd.Stderr = io.Discard
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start MCP server: %w", err)
+	}
+
+	return NewMCPClient(cmd, stdin, bufio.NewReader(stdout), 1), nil
 }
 
 // NewRunner creates a new CLI command runner. The projectRoot is used as the

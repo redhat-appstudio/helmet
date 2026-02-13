@@ -23,12 +23,17 @@ Via [`Makefile`](./Makefile) — always use `make` (ensures build-time injection
 | `make build` | Build executable |
 | `make test-unit` | Unit tests |
 | `make test-unit ARGS='-run=Test'` | Specific test |
-| `make test-integration` | Integration tests |
+| `make test-e2e-cli` | E2E CLI tests (requires cluster) |
+| `make test-e2e-mcp` | E2E MCP tests (requires cluster + image) |
+| `make lint` | Linting (`golangci-lint`) |
+
+**E2E tests** require a Kubernetes cluster via `KUBECONFIG`. Users provide their own cluster or use `make kind-up` / `make kind-down` for local KinD. The MCP suite requires a container image accessible to the cluster; build and push with `make image image-push IMAGE_REPOSITORY="<registry>"` using a registry the cluster can pull from.
 
 ## Testing
 
 - **Assertions**: `github.com/onsi/gomega`
 - **Coverage**: >80% for `framework/`, `api/`, `internal/resolver`
+- **E2E suites**: `test/e2e/cli/` (CLI workflow), `test/e2e/mcp/` (MCP JSON-RPC workflow)
 - **Deps changed?** Run `go mod tidy -v && go mod vendor`
 
 ## Critical Packages

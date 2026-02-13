@@ -3,6 +3,7 @@ PKG ?= ./api/... ./framework/... ./internal/...
 # E2E test package.
 PKG_E2E ?= ./test/e2e
 PKG_E2E_CLI := $(PKG_E2E)/cli/...
+PKG_E2E_MCP := $(PKG_E2E)/mcp/...
 
 # Golang general flags for build and testing.
 GOFLAGS ?= -v
@@ -41,11 +42,12 @@ endif
 GITHUB_REF_NAME ?= ${GITHUB_REF_NAME:-}
 GITHUB_TOKEN ?= ${GITHUB_TOKEN:-}
 
-# Container image configuration.
-IMAGE_REPOSITORY ?= localhost:5001
-IMAGE_NAMESPACE  ?= helmet
-IMAGE_TAG        ?= $(COMMIT_ID)
-IMAGE            ?= $(IMAGE_REPOSITORY)/$(IMAGE_NAMESPACE)/$(EXAMPLE_APP):$(IMAGE_TAG)
+# Container image configuration, either podman or docker.
+CONTAINER_CLI ?= docker
+IMAGE_REPOSITORY ?= localhost:5000
+IMAGE_NAMESPACE ?= helmet
+IMAGE_TAG ?= $(COMMIT_ID)
+IMAGE ?= $(IMAGE_REPOSITORY)/$(IMAGE_NAMESPACE)/$(EXAMPLE_APP):$(IMAGE_TAG)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -97,7 +99,7 @@ run: build
 .PHONY: image
 image: installer-tarball
 	@echo "Building container image: $(IMAGE)"
-	docker build -t $(IMAGE) -f $(EXAMPLE_DIR)/Dockerfile \
+	$(CONTAINER_CLI) build -t $(IMAGE) -f $(EXAMPLE_DIR)/Dockerfile \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg COMMIT_ID=$(COMMIT_ID) \
 		.
@@ -105,8 +107,8 @@ image: installer-tarball
 
 # Pushes the container image to the configured registry.
 .PHONY: image-push
-image-push: image
-	docker push $(IMAGE)
+image-push:
+	$(CONTAINER_CLI) push $(IMAGE)
 
 #
 # Tools
@@ -157,6 +159,11 @@ test-unit:
 .PHONY: test-e2e-cli
 test-e2e-cli: build
 	go tool ginkgo -v --fail-fast $(PKG_E2E_CLI) $(ARGS)
+
+# Runs the E2E MCP tests (requires KinD cluster + image pushed).
+.PHONY: test-e2e-mcp
+test-e2e-mcp: build
+	go tool ginkgo -v --fail-fast $(PKG_E2E_MCP) $(ARGS)
 
 # Uses golangci-lint to inspect the code base.
 .PHONY: lint
@@ -231,54 +238,34 @@ goreleaser-release: github-preflight
 KIND_CLUSTER_NAME ?= helmet-test
 KIND_CONFIG ?= test/kind-cluster.yaml
 KIND_REGISTRY_NAME ?= kind-registry
-KIND_REGISTRY_PORT ?= 5001
+KIND_REGISTRY_PORT ?= 5000
 
-# Create registry container if it doesn't exist, or start it if it's stopped
-.PHONY: kind-registry-up
-kind-registry-up:
-	@if [ -z "$$(docker ps -q -f name=$(KIND_REGISTRY_NAME))" ]; then \
-		if [ -n "$$(docker ps -aq -f name=$(KIND_REGISTRY_NAME))" ]; then \
-			echo "Starting existing registry container '$(KIND_REGISTRY_NAME)'..."; \
-			docker start $(KIND_REGISTRY_NAME); \
-		else \
-			echo "Creating registry container '$(KIND_REGISTRY_NAME)'..."; \
-			docker run -d --restart=always \
-				-p 127.0.0.1:$(KIND_REGISTRY_PORT):5000 \
-				--network bridge \
-				--name $(KIND_REGISTRY_NAME) \
-				registry:2; \
-		fi; \
-	fi
-
-# Creates a KinD cluster for testing with local registry
+# Creates a KinD cluster for testing with local registry.
 .PHONY: kind-up
-kind-up: kind-registry-up
+kind-up:
+	@echo "Creating registry container '$(KIND_REGISTRY_NAME)'..."
+	@docker run -d --restart=always \
+		-p 127.0.0.1:$(KIND_REGISTRY_PORT):5000 \
+		--network bridge \
+		--name $(KIND_REGISTRY_NAME) \
+		registry:2 2>/dev/null || \
+		docker start $(KIND_REGISTRY_NAME) 2>/dev/null || true
 	@echo "Creating KinD cluster '$(KIND_CLUSTER_NAME)'..."
 	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG) --wait 60s
 	@echo "Connecting registry to cluster network..."
 	@docker network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
 	@echo "KinD cluster '$(KIND_CLUSTER_NAME)' is ready!"
 	@echo "Local registry available at: localhost:$(KIND_REGISTRY_PORT)"
-	@echo "Run: kubectl cluster-info --context kind-$(KIND_CLUSTER_NAME)"
 
-# Deletes the KinD cluster
+# Deletes the KinD cluster and local registry.
 .PHONY: kind-down
-kind-down: kind-registry-down
+kind-down:
 	@echo "Deleting KinD cluster '$(KIND_CLUSTER_NAME)'..."
-	kind delete cluster --name $(KIND_CLUSTER_NAME)
-	@echo "KinD cluster '$(KIND_CLUSTER_NAME)' deleted."
+	@kind delete cluster --name $(KIND_CLUSTER_NAME) 2>/dev/null || true
+	@echo "Removing registry container '$(KIND_REGISTRY_NAME)'..."
+	@docker rm -f $(KIND_REGISTRY_NAME) 2>/dev/null || true
 
-# Stops and removes the local registry
-.PHONY: kind-registry-down
-kind-registry-down:
-	@if [ -n "$$(docker ps -aq -f name=$(KIND_REGISTRY_NAME))" ]; then \
-		echo "Removing registry container '$(KIND_REGISTRY_NAME)'..."; \
-		docker rm -f $(KIND_REGISTRY_NAME); \
-	else \
-		echo "Registry '$(KIND_REGISTRY_NAME)' does not exist"; \
-	fi
-
-# Shows KinD cluster status
+# Shows KinD cluster and registry status.
 .PHONY: kind-status
 kind-status:
 	@kind get clusters 2>/dev/null | grep -q "$(KIND_CLUSTER_NAME)" && \
@@ -305,14 +292,13 @@ help:
 	@echo "  image-push               - Push container image"
 	@echo "  test-unit                - Run unit tests"
 	@echo "  test-e2e-cli             - Run E2E CLI tests (requires KinD)"
+	@echo "  test-e2e-mcp             - Run E2E MCP tests (requires KinD + image)"
 	@echo "  lint                     - Run linting"
 	@echo "  security                 - Run govulncheck vulnerability scan"
 	@echo "  github-release-create    - Create GitHub release (requires 'gh')"
 	@echo "  goreleaser-snapshot      - Build release assets for current platform"
 	@echo "  goreleaser-release       - Create full release (CI only)"
-	@echo "  kind-registry-up         - Create local Docker registry"
 	@echo "  kind-up                  - Create KinD cluster with local registry"
-	@echo "  kind-down                - Delete the KinD cluster"
-	@echo "  kind-registry-down       - Remove the local registry"
+	@echo "  kind-down                - Delete KinD cluster and registry"
 	@echo "  kind-status              - Show KinD cluster and registry status"
 	@echo "  help                     - Show this help"

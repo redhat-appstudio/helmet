@@ -5,9 +5,12 @@ description: 'Create KinD cluster for E2E tests'
 runs:
   using: composite
   steps:
-    - name: Create KinD cluster
+    - name: Create KinD cluster with local registry
       uses: helm/kind-action@v1
       with:
         cluster_name: helmet-test
         config: test/kind-cluster.yaml
+        registry: true
+        registry_name: kind-registry
+        registry_port: 5000
         wait: 60s

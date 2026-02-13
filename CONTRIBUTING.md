@@ -1,59 +1,59 @@
-Contributing to `tssc`
----------------------------
+Contributing to Helmet Framework
+--------------------------------
 
-This project also provides a [`GEMINI.md`](GEMINI.md) file with context for AI-powered code assistants.
+Helmet is a **reusable Go library** for building Helm-based installers that deploy workloads to Kubernetes clusters. The repository provides the `framework/`, `api/`, and `internal/` packages that consumers import to build their own installer binaries.
 
-In order to contribute to this project you need the following requirements:
+The `example/helmet-ex/` directory contains a reference application (`helmet-ex`) that demonstrates how to use the framework. This example serves as both documentation for consumers and the test fixture for the repository's CI pipeline. All build, test, and image targets in the [Makefile](Makefile) operate against this example app.
 
-- [Golang 1.23 or higher][golang]
+This project also provides an [`AGENTS.md`](AGENTS.md) file with context for AI-powered code assistants.
+
+# Prerequisites
+
+- [Go 1.25 or higher][golang]
 - [GNU Make][gnuMake]
-- [GNU Tar][gnuTar]
-- [Podman][podman] or [Buildah][buildah] (optional)
-
-All the automation needed for the project lives in the [Makefile](Makefile). This file is the entry point for all the automation tasks in the project for CI, development and release
-
-For macOS users make sure `gtar` is available, i.e.:
-
-```bash
-brew install gnu-tar
-```
+- [GNU Tar][gnuTar] (macOS: `brew install gnu-tar`)
+- [Docker][docker] or [Podman][podman] (for container images)
 
 # Building
 
-After you have cloned the repository and installed the requirements, you can start building. For that purpose you can simply run `make`, the default target builds the application in the `bin` directory
+Build the example application with:
 
 ```bash
 make
 ```
 
-The resources needed for the installer are stored in the `installer` directory, you can find the `config.yaml` file there. Before the application is built, the contents of the installer directory are packaged into a tarball and embedded into the application binary.
+This compiles `example/helmet-ex/helmet-ex`, automatically packaging the installer resources (`example/helmet-ex/installer/`) into an embedded tarball. The tarball (`installer.tar`) is excluded from version control and regenerated whenever its source files change.
 
-To package the installer resources into a tarball run the following target:
+To run the example application:
 
 ```bash
-make installer-tarball
-ls -l installer/installer.tar
+make run ARGS='deploy --help'
 ```
-
-The `installer/installer.tar` is intentionally excluded from version control.
 
 ## Container Image
 
-In order to build a container image out of this project run the following target:
+Build and push the container image using the `image` and `image-push` targets. Point `IMAGE_REPOSITORY` at a registry your Kubernetes cluster can pull from:
 
 ```bash
-make image IMAGE_REPO="ghcr.io/redhat-appstudio/rhtap-cli" IMAGE_TAG="latest"
+make image image-push IMAGE_REPOSITORY="my-registry.example.com:5000"
 ```
 
-The `IMAGE_REPO` and `IMAGE_TAG` are optional variables, you should use your own repository and tag for the image.
+The full image reference is composed from several variables:
 
-By default the container is build using `podman`, you can alternatively use `buildah` by running the target `make image-buildah` instead.
+| Variable           | Default          | Purpose                                   |
+| ------------------ | ---------------- | ----------------------------------------- |
+| `IMAGE_REPOSITORY` | `localhost:5000` | Registry host and port                    |
+| `IMAGE_NAMESPACE`  | `helmet`         | Image namespace/org                       |
+| `IMAGE_TAG`        | `$(COMMIT_ID)`   | Image tag (defaults to current git SHA)   |
+| `CONTAINER_CLI`    | `docker`         | Container build tool (`docker`, `podman`) |
+
+These combine into `IMAGE = $IMAGE_REPOSITORY/$IMAGE_NAMESPACE/helmet-ex:$IMAGE_TAG`. With defaults, the image resolves to `localhost:5000/helmet/helmet-ex:<commit>`.
 
 # Testing
 
 ## Unit Tests
 
-Unit tests cover the core packages (`api/`, `framework/`, `internal/`). Assertions use [`gomega`][gomega]:
+Unit tests cover the core library packages (`api/`, `framework/`, `internal/`) and the E2E test helpers (`test/e2e/`). Assertions use [`gomega`][gomega]:
 
 ```bash
 make test-unit
@@ -65,26 +65,44 @@ To run a specific test:
 make test-unit ARGS='-run=TestName'
 ```
 
-## E2E CLI Tests
+## E2E Tests
 
-End-to-end tests exercise the full installer workflow against a live Kubernetes cluster using [Ginkgo v2][ginkgo]. They live in `test/e2e/cli/` and validate the config-create, integration, topology, deploy, and release-checking pipeline.
+End-to-end tests exercise the full installer workflow against a live Kubernetes cluster using [Ginkgo v2][ginkgo]. Both suites run against the `helmet-ex` example application:
 
-The tests require a Kubernetes cluster accessible via `KUBECONFIG`. You can use any cluster you have available, or create a local [KinD][kind] cluster:
+- **CLI** (`test/e2e/cli/`): drives the workflow via the `helmet-ex` CLI binary, validating config-create, integration, topology, deploy, and release-checking.
+- **MCP** (`test/e2e/mcp/`): drives the workflow via JSON-RPC 2.0 tool calls over STDIO, exercising all 13 MCP tools across configuration, integration, deployment, and post-deploy validation phases.
+
+### Prerequisites
+
+Both suites require a Kubernetes cluster accessible via `KUBECONFIG`. You can use any cluster you have available, or create a local [KinD][kind] cluster:
 
 ```bash
-make kind-up       # creates a local KinD cluster (optional)
+make kind-up       # creates KinD cluster + local registry at localhost:5000
 ```
 
-Then run the E2E CLI suite:
+The MCP suite additionally requires a container image pushed to a registry the cluster can pull from (see [Container Image](#container-image)):
 
 ```bash
-make test-e2e-cli
+make image image-push IMAGE_REPOSITORY="my-registry.example.com:5000"
 ```
 
-To tear down a KinD cluster:
+### Running
 
 ```bash
-make kind-down
+make test-e2e-cli                    # CLI workflow suite
+make test-e2e-mcp                    # MCP workflow suite (requires image)
+```
+
+When using a non-default registry, pass the same `IMAGE_REPOSITORY` so the test knows where to find the image:
+
+```bash
+make test-e2e-mcp IMAGE_REPOSITORY="my-registry.example.com:5000"
+```
+
+### Teardown
+
+```bash
+make kind-down     # deletes KinD cluster and local registry
 ```
 
 ## Linting
@@ -103,118 +121,13 @@ Vulnerability scanning uses [`govulncheck`][govulncheck] to check dependencies f
 make security
 ```
 
-## All Checks
-
-Before submitting a pull request, run:
-
-```bash
-make test-unit
-make lint
-make security
-```
-
-# Running
-
-To run the application you can rely on the `run` target, this is the equivalent of `go run` command. For instance:
-
-```bash
-make run ARGS='deploy --help'
-```
-
-Which is the equivalent of building and running the application, i.e.:
-
-```bash
-make &&
-    bin/tssc deploy --help
-```
-
-## Debugging `tssc mcp-server`
-
-The [`tssc mcp-server`](docs/mcp.md) subcommand communicates [via `STDIO`][mcpTransports], to debug this subcommand using `dlv` you can use the [`hack/dlv-tssc-mcp-server.sh`](hack/dlv-tssc-mcp-server.sh) script, make sure [the debugger is installed][delveInstallation]. This script wraps `dlv exec` around `tssc mcp-server`, ensuring `STDIO` communication is properly redirected and the Delve API is exposed on a local port.
-
-When you start the [`dlv-tssc-mcp-server.sh`](hack/dlv-tssc-mcp-server.sh) script, it will wait for the Delve client to connect before continuing execution. This is important to note, especially when using this approach with an LLM agentic client, as it can cause the client to hang while waiting for the debugger to attach.
-
-To configure VSCode for debugging, you can use the following `launch.json` snippet:
-
-```json
-{
-    "name": "tssc-mcp-dlv",
-    "type": "go",
-    "mode": "remote",
-    "host": "localhost",
-    "port": 8282,
-    "request": "attach",
-}
-```
-
-Follow these steps to start debugging the MCP server:
-
-1. Build the project with debug symbols enabled:
-    ```sh
-    make debug
-    ```
-2. Configure the MCP server on your favorite LLM client, using the [`hack/dlv-tssc-mcp-server.sh`](hack/dlv-tssc-mcp-server.sh) script as command.
-3. Start the LLM client, and right after attach the debugger.
-4. With the debugger client attached, you can use the LLM client and debug the project as usual.
-
-# GitHub Release
-
-This project uses [GitHub Actions](.github/workflows/release.yaml) to automate the release process, triggered by a new tag in the repository.
-
-To release this application using the the GitHub web interface follow the steps:
-
-1. Go to the [releases page][releases]
-2. Click on "Create a new release" button
-3. Choose the tag you want to release, the tag must start with `v` and follow the semantic versioning pattern.
-4. Fill the release title and description
-5. [Wait for the release workflow][actions] to finish and verify the release assets
-
-## Release Automation
-
-### Workflow
-
-For the release automation the following tools are used:
-- [`gh`][gitHubCLI]: GitHub helper CLI, ensure the release is created, or create it if it doesn't exist yet.
-- [`goreleaser`][goreleaser]: Tool to automate the release process, it creates the release assets and uploads them to the GitHub release.
-
-The [release workflow](.github/workflows/release.yaml) relies on the `make github-release` target, this [`Makefile`](Makefile) target is responsible for ensure the release is created, or create it using `gh` helper, build and upload the release assets using `goreleaser`.
-
-The GitHub workflow provides [`GITHUB_REF_NAME` environment variable][gitHubDocWorkflowEnvVars] to the release job, this variable is used to determine the tag name to release.
-
-```bash
-make github-release GITHUB_REF_NAME="v0.1.0"
-```
-
-### Assets
-
-The release assets are built using `goreleaser`, the configuration for this tool is stored in the [`.goreleaser.yaml`](.goreleaser.yaml) file.
-
-To build the release assets for only the current platform, run:
-
-```bash
-make snapshot ARGS='--single-target --output=bin/tssc'
-```
-
-To build the release assets for all platforms, run:
-
-```bash
-make snapshot
-```
-
-[actions]: https://github.com/redhat-appstudio/tssc-cli/actions
-[gitHubCLI]: https://cli.github.com
-[gitHubDocWorkflowEnvVars]: https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/variables#default-environment-variables
-[gnuMake]: https://www.gnu.org/software/make
-[golang]: https://golang.org/dl
-[goreleaser]: https://goreleaser.com
-[buildah]: https://buildah.io
-[podman]: https://podman.io
-[releases]: https://github.com/redhat-appstudio/tssc-cli/releases
-[gnuTar]: https://www.gnu.org/software/tar
-[mcpTransports]: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
-[delveInstallation]: https://github.com/go-delve/delve/tree/master/Documentation/installation
-[gomega]: https://onsi.github.io/gomega
+[docker]: https://docs.docker.com/get-docker
 [ginkgo]: https://onsi.github.io/ginkgo
-[kind]: https://kind.sigs.k8s.io
+[gnuMake]: https://www.gnu.org/software/make
+[gnuTar]: https://www.gnu.org/software/tar
+[golang]: https://golang.org/dl
 [golangciLint]: https://golangci-lint.run
+[gomega]: https://onsi.github.io/gomega
 [govulncheck]: https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck
+[kind]: https://kind.sigs.k8s.io
+[podman]: https://podman.io

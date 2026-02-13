@@ -11,6 +11,8 @@ tssc:
     - name: Product B
       enabled: true
       namespace: helmet-product-b
+      properties:
+        storageClass: standard
     - name: Product C
       enabled: true
       namespace: helmet-product-c

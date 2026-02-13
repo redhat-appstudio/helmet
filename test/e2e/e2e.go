@@ -45,7 +45,7 @@ func NewSharedContext(namespace string) (*SharedContext, error) {
 		return nil, fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
 
-	helmConfig, err := newHelmConfig(namespace)
+	helmConfig, err := NewHelmConfig(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm config: %w", err)
 	}

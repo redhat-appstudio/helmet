@@ -87,6 +87,9 @@ func (j *Job) getJob(ctx context.Context) (*batchv1.Job, error) {
 func (j *Job) GetState(ctx context.Context) (JobState, error) {
 	job, err := j.getJob(ctx)
 	if err != nil {
+		if errors.Is(err, ErrJobNotFound) {
+			return NotFound, nil
+		}
 		return -1, err
 	}
 

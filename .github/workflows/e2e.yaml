@@ -26,3 +26,13 @@ jobs:
       - uses: ./.github/actions/go
       - uses: ./.github/actions/kind
       - run: make test-e2e-cli
+
+  e2e-mcp:
+    runs-on: ubuntu-latest
+    needs: e2e-cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/go
+      - uses: ./.github/actions/kind
+      - run: make image image-push
+      - run: make test-e2e-mcp

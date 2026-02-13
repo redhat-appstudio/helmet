@@ -11,8 +11,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// GetKubeConfig loads kubeconfig from the KUBECONFIG environment variable or
-// the default location (~/.kube/config).
+// GetKubeConfig loads kubeconfig from the KUBECONFIG environment variable or the
+// default location (~/.kube/config).
 func GetKubeConfig() (*rest.Config, error) {
 	kubeConfig := os.Getenv("KUBECONFIG")
 	if kubeConfig == "" {
@@ -28,9 +28,9 @@ func GetKubeConfig() (*rest.Config, error) {
 // noopLog is a no-op logger for Helm action configuration.
 func noopLog(_ string, _ ...any) {}
 
-// newHelmConfig creates a Helm action.Configuration for the specified
-// namespace using the KUBECONFIG environment variable.
-func newHelmConfig(namespace string) (*action.Configuration, error) {
+// NewHelmConfig creates a Helm action.Configuration for the specified namespace
+// using the KUBECONFIG environment variable.
+func NewHelmConfig(namespace string) (*action.Configuration, error) {
 	cfg := new(action.Configuration)
 	kubeconfig := os.Getenv("KUBECONFIG")
 	cf := genericclioptions.NewConfigFlags(false)
@@ -42,4 +42,13 @@ func newHelmConfig(namespace string) (*action.Configuration, error) {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// MCPTestImage returns the container image reference for the MCP server. Uses
+// IMAGE environment varable if set, falls back to default.
+func MCPTestImage() string {
+	if img := os.Getenv("IMAGE"); img != "" {
+		return img
+	}
+	return "localhost:5000/helmet/helmet-ex:latest"
 }

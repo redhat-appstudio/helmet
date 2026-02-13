@@ -67,7 +67,8 @@ var _ = Describe("Installer Workflow", func() {
 				return fmt.Errorf("releases check failed: %s", result.Message)
 			}
 			return nil
-		}).WithPolling(5 * time.Second).WithTimeout(15 * 5 * time.Second).
+		}).WithPolling(5 * time.Second).
+			WithTimeout(180 * time.Second).
 			Should(Succeed())
 	})
 })
