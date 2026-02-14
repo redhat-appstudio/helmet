@@ -34,9 +34,9 @@ to interact with the GitHub App.
 The App credentials are stored in a Kubernetes Secret in the configured namespace
 for RHDH.
 
-The given personal access token (--token) must have the desired permissions for
-OpenShift GitOps and OpenShift Pipelines to interact with the repositories, adding
-"push" permission may be required.
+The personal access token (--token) is optional. When provided, it is used to
+resolve the current GitHub user for the secret; when omitted, the app is still
+created but the secret will have an empty username and empty token.
 `
 
 // Cmd exposes the cobra instance.

@@ -65,10 +65,6 @@ func (g *GitHub) PersistentFlags(c *cobra.Command) {
 	p.StringVar(&g.token, "token", g.token,
 		"GitHub personal access token")
 
-	if err := c.MarkPersistentFlagRequired("token"); err != nil {
-		panic(err)
-	}
-
 	// Including GitHub App API client flags.
 	g.client.PersistentFlags(c)
 }
@@ -244,11 +240,17 @@ func (g *GitHub) Data(
 		return nil, err
 	}
 
-	g.log().With("hostname", u.Hostname()).
-		Info("Getting the current GitHub user from the application URL")
-	username, err := g.getCurrentGitHubUser(ctx, u.Hostname())
-	if err != nil {
-		return nil, err
+	var username string
+	if g.token == "" {
+		g.log().Debug("Skipping current user resolution: no token provided")
+	} else {
+		g.log().With("hostname", u.Hostname()).
+			Info("Getting the current GitHub user from the application URL")
+		var errUser error
+		username, errUser = g.getCurrentGitHubUser(ctx, u.Hostname())
+		if errUser != nil {
+			return nil, errUser
+		}
 	}
 
 	g.log().With("username", username).
