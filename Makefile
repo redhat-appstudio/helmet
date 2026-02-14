@@ -98,17 +98,20 @@ run: build
 # Builds the container image.
 .PHONY: image
 image: installer-tarball
-	@echo "Building container image: $(IMAGE)"
-	$(CONTAINER_CLI) build -t $(IMAGE) -f $(EXAMPLE_DIR)/Dockerfile \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg COMMIT_ID=$(COMMIT_ID) \
+	@echo "# Building container image: $(IMAGE)"
+	$(CONTAINER_CLI) build  \
+		--tag="$(IMAGE)" \
+		--file="$(EXAMPLE_DIR)/Dockerfile" \
+		--build-arg="BUILD_VERSION=$(VERSION)" \
+		--build-arg="COMMIT_ID=$(COMMIT_ID)" \
+		$(ARGS) \
 		.
-	@echo "Container image built successfully: $(IMAGE)"
+	@echo "# Container image built successfully: $(IMAGE)"
 
 # Pushes the container image to the configured registry.
 .PHONY: image-push
 image-push:
-	$(CONTAINER_CLI) push --tls-verify=false $(IMAGE) $(ARGS)
+	$(CONTAINER_CLI) push --tls-verify=false $(ARGS) $(IMAGE)
 
 #
 # Tools
@@ -124,7 +127,7 @@ tool-golangci-lint:
 .PHONY: tool-gh
 tool-gh:
 	@which gh >/dev/null 2>&1 || \
-		{ echo "Error: 'gh' not found in PATH."; exit 1; }
+		{ echo "# Error: 'gh' not found in PATH."; exit 1; }
 	@gh --version
 
 # Executes goreleaser via go tool (version from go.mod).
@@ -243,38 +246,38 @@ KIND_REGISTRY_PORT ?= 5000
 # Creates a KinD cluster for testing with local registry.
 .PHONY: kind-up
 kind-up:
-	@echo "Creating registry container '$(KIND_REGISTRY_NAME)'..."
+	@echo "# Creating registry container '$(KIND_REGISTRY_NAME)'..."
 	@docker run -d --restart=always \
 		-p 127.0.0.1:$(KIND_REGISTRY_PORT):5000 \
 		--network bridge \
 		--name $(KIND_REGISTRY_NAME) \
 		registry:2 2>/dev/null || \
 		docker start $(KIND_REGISTRY_NAME) 2>/dev/null || true
-	@echo "Creating KinD cluster '$(KIND_CLUSTER_NAME)'..."
+	@echo "# Creating KinD cluster '$(KIND_CLUSTER_NAME)'..."
 	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG) --wait 60s
-	@echo "Connecting registry to cluster network..."
+	@echo "# Connecting registry to cluster network..."
 	@docker network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
-	@echo "KinD cluster '$(KIND_CLUSTER_NAME)' is ready!"
-	@echo "Local registry available at: localhost:$(KIND_REGISTRY_PORT)"
+	@echo "# KinD cluster '$(KIND_CLUSTER_NAME)' is ready!"
+	@echo "# Local registry available at: localhost:$(KIND_REGISTRY_PORT)"
 
 # Deletes the KinD cluster and local registry.
 .PHONY: kind-down
 kind-down:
-	@echo "Deleting KinD cluster '$(KIND_CLUSTER_NAME)'..."
+	@echo "# Deleting KinD cluster '$(KIND_CLUSTER_NAME)'..."
 	@kind delete cluster --name $(KIND_CLUSTER_NAME) 2>/dev/null || true
-	@echo "Removing registry container '$(KIND_REGISTRY_NAME)'..."
+	@echo "# Removing registry container '$(KIND_REGISTRY_NAME)'..."
 	@docker rm -f $(KIND_REGISTRY_NAME) 2>/dev/null || true
 
 # Shows KinD cluster and registry status.
 .PHONY: kind-status
 kind-status:
 	@kind get clusters 2>/dev/null | grep -q "$(KIND_CLUSTER_NAME)" && \
-		echo "KinD cluster '$(KIND_CLUSTER_NAME)' is running" || \
-		echo "KinD cluster '$(KIND_CLUSTER_NAME)' is not running"
+		echo "# KinD cluster '$(KIND_CLUSTER_NAME)' is running" || \
+		echo "# KinD cluster '$(KIND_CLUSTER_NAME)' is not running"
 	@if [ -n "$$(docker ps -q -f name=$(KIND_REGISTRY_NAME))" ]; then \
-		echo "Registry '$(KIND_REGISTRY_NAME)' is running at localhost:$(KIND_REGISTRY_PORT)"; \
+		echo "# Registry '$(KIND_REGISTRY_NAME)' is running at localhost:$(KIND_REGISTRY_PORT)"; \
 	else \
-		echo "Registry '$(KIND_REGISTRY_NAME)' is not running"; \
+		echo "# Registry '$(KIND_REGISTRY_NAME)' is not running"; \
 	fi
 
 #
