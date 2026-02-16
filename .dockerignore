@@ -1,0 +1,46 @@
+# Version control
+.git/
+.github/
+
+# AI/IDE configuration
+.claude/
+.gemini/
+.notes/
+.idea/
+.vscode/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!**/installer/**/*.md
+LICENSE.txt
+OWNERS
+docs/
+
+# Go build/test artifacts
+example/helmet-ex/helmet-ex
+coverage.out
+__debug*
+*.test
+
+# Test suites (keep symlink targets for installer data)
+test/
+!test/charts/
+!test/config.yaml
+!test/values.yaml.tpl
+
+# Container configuration
+.dockerignore
+Dockerfile
+
+# Build tool configuration
+.golangci.yaml
+.goreleaser.yaml

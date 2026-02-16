@@ -1,32 +1,32 @@
-# Build stage
+#
+# Build
+#
+
 FROM registry.access.redhat.com/ubi9/go-toolset:latest AS builder
 
-# Build arguments
-ARG VERSION=v0.0.0-SNAPSHOT
+# Build arguments forwarded to "make build" as variable overrides.
+ARG BUILD_VERSION=v0.0.0-SNAPSHOT
 ARG COMMIT_ID=unknown
 
-# Switch to root to have full permissions
-USER root
-
-WORKDIR /workspace
-
-# Allow Go to download the required toolchain version
+# Allows Go to automatically download the toolchain version required by "go.mod".
 ENV GOTOOLCHAIN=auto
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+USER root
 
-# Copy source code
+# Source and vendored dependencies (filtered by ".dockerignore").
+WORKDIR /workspace
 COPY . .
 
-# Build the binary for Linux
-RUN CGO_ENABLED=0 GOOS=linux go build \
-    -buildvcs=false \
-    -ldflags "-X main.version=${VERSION} -X main.commitID=${COMMIT_ID}" \
-    -o helmet-ex ./example/helmet-ex
+RUN make build VERSION="${BUILD_VERSION}" COMMIT_ID="${COMMIT_ID}"
 
-# Runtime stage
+#
+# Run
+#
+
 FROM registry.access.redhat.com/ubi9-micro:latest
-COPY --from=builder /workspace/helmet-ex /usr/local/bin/helmet-ex
+
+COPY --from=builder \
+    /workspace/example/helmet-ex/helmet-ex \
+    /usr/local/bin/helmet-ex
+
 ENTRYPOINT ["helmet-ex"]
