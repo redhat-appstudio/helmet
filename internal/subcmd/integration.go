@@ -1,6 +1,8 @@
 package subcmd
 
 import (
+	"context"
+
 	"github.com/redhat-appstudio/helmet/api"
 	"github.com/redhat-appstudio/helmet/internal/config"
 	"github.com/redhat-appstudio/helmet/internal/integrations"
@@ -9,6 +11,59 @@ import (
 
 	"github.com/spf13/cobra"
 )
+
+// disableProductForIntegration disables the product that provides the active
+// integration, if the integration secret exists and the product is currently
+// enabled. Only the active integration is inspected; other integrations are
+// not touched.
+func disableProductForIntegration(
+	ctx context.Context,
+	appCtx *api.AppContext,
+	runCtx *runcontext.RunContext,
+	manager *integrations.Manager,
+	cfg *config.Config,
+	activeIntegration integrations.IntegrationName,
+) error {
+	// Check if THIS integration's secret was actually created.
+	integration := manager.Integration(activeIntegration)
+	exists, err := integration.Exists(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
+	// Find the product that provides this integration (if any).
+	charts, err := runCtx.ChartFS.GetAllCharts()
+	if err != nil {
+		return err
+	}
+	collection, err := resolver.NewCollection(appCtx, charts)
+	if err != nil {
+		return err
+	}
+	productName := collection.GetProductNameForIntegration(
+		string(activeIntegration))
+	if productName == "" {
+		return nil // no product provides this integration
+	}
+
+	spec, err := cfg.GetProduct(productName)
+	if err != nil {
+		return err
+	}
+	if !spec.Enabled {
+		return nil // already disabled
+	}
+
+	spec.Enabled = false
+	if err := cfg.SetProduct(productName, *spec); err != nil {
+		return err
+	}
+	return config.NewConfigMapManager(runCtx.Kube, appCtx.Name).
+		Update(ctx, cfg)
+}
 
 func NewIntegration(
 	appCtx *api.AppContext,
@@ -20,60 +75,36 @@ func NewIntegration(
 		Short: "Configures an external service provider for TSSC",
 		PersistentPostRunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
+
+			// cmd is the child command (e.g., "acs", "quay").
+			// cmd.Name() returns the integration name, matching the
+			// IntegrationName used to register the module in Manager.
+			activeIntegration := integrations.IntegrationName(cmd.Name())
+
 			cfg, err := bootstrapConfig(ctx, appCtx, runCtx)
 			if err != nil {
 				return err
 			}
-
-			charts, err := runCtx.ChartFS.GetAllCharts()
-			if err != nil {
-				return err
-			}
-
-			collection, err := resolver.NewCollection(appCtx, charts)
-			if err != nil {
-				return err
-			}
-
-			configuredIntegrations, err := manager.ConfiguredIntegrations(ctx, cfg)
-			if err != nil {
-				return err
-			}
-
-			updated := false
-			for _, integrationName := range configuredIntegrations {
-				productName := collection.GetProductNameForIntegration(integrationName)
-				if productName == "" {
-					continue
-				}
-
-				spec, err := cfg.GetProduct(productName)
-				if err != nil {
-					return err
-				}
-
-				if spec.Enabled {
-					spec.Enabled = false
-					if err := cfg.SetProduct(productName, *spec); err != nil {
-						return err
-					}
-					updated = true
-				}
-			}
-
-			if updated {
-				return config.NewConfigMapManager(runCtx.Kube, appCtx.Name).
-					Update(ctx, cfg)
-			}
-
-			return nil
+			return disableProductForIntegration(
+				ctx, appCtx, runCtx, manager, cfg, activeIntegration)
 		},
 	}
 
 	for _, mod := range manager.GetModules() {
 		wrapper := manager.Integration(integrations.IntegrationName(mod.Name))
 		sub := mod.Command(appCtx, runCtx, wrapper)
-		cmd.AddCommand(api.NewRunner(sub).Cmd())
+		runner := api.NewRunner(sub)
+
+		// Enforce: Cobra command name must match the integration module
+		// name. When they differ, preserve the original as an alias for
+		// backward compatibility.
+		childCmd := runner.Cmd()
+		if childCmd.Name() != mod.Name {
+			childCmd.Aliases = append(childCmd.Aliases, childCmd.Name())
+			childCmd.Use = mod.Name
+		}
+
+		cmd.AddCommand(childCmd)
 	}
 
 	return cmd
