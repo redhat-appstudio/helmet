@@ -6,7 +6,7 @@ runs:
   using: composite
   steps:
     - name: Create KinD cluster with local registry
-      uses: helm/kind-action@v1
+      uses: helm/kind-action@v1.13.0
       with:
         cluster_name: helmet-test
         config: test/kind-cluster.yaml
