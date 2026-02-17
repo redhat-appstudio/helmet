@@ -18,7 +18,7 @@ The `helmet-ex` application showcases:
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Go 1.25 or higher
 - GNU tar (`gtar` on macOS)
 - Git
 
@@ -32,7 +32,7 @@ tar cvpf installer/installer.tar \
     --dereference \
     --exclude="*.go" \
     --exclude="installer.tar" \
-    installer
+    -C installer .
 
 go build .
 ```
@@ -256,8 +256,15 @@ For debugging, check that instructions.md is embedded:
 
 ## References
 
-- [Helmet Framework Documentation](../../README.md)
-
-## License
-
-Same as parent Helmet project.
+- [Helmet Framework](../../README.md) -- project overview and documentation index
+- [Getting Started](../../docs/getting-started.md) -- creating a new installer from scratch
+- [Architecture & Design](../../docs/architecture.md) -- framework components and extension points
+- [Installer Structure](../../docs/installer-structure.md) -- tarball layout, `go:embed`, overlay filesystem
+- [Configuration](../../docs/configuration.md) -- `config.yaml` schema and ConfigMap persistence
+- [Dependency Topology](../../docs/topology.md) -- chart annotations and resolution algorithm
+- [Template Engine](../../docs/templating.md) -- `values.yaml.tpl` syntax and custom functions
+- [Integrations](../../docs/integrations.md) -- integration system, custom integrations, CEL expressions
+- [MCP Server](../../docs/mcp.md) -- MCP tools, container image, custom tools
+- [CLI Reference](../../docs/cli-reference.md) -- generated commands and flags
+- [Hook Scripts](../../docs/hooks.md) -- pre/post deploy scripts
+- [Example Charts](../../docs/example-charts.md) -- test chart reference and dependency graph
