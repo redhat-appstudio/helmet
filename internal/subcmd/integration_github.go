@@ -32,11 +32,9 @@ using the GitHub API, and storing the credentials required by the TSSC services
 to interact with the GitHub App.
 
 The App credentials are stored in a Kubernetes Secret in the configured namespace
-for RHDH.
+for the application.
 
-The given personal access token (--token) must have the desired permissions for
-OpenShift GitOps and OpenShift Pipelines to interact with the repositories, adding
-"push" permission may be required.
+The personal access token (--token) is optional.
 `
 
 // Cmd exposes the cobra instance.

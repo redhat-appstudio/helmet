@@ -65,10 +65,6 @@ func (g *GitHub) PersistentFlags(c *cobra.Command) {
 	p.StringVar(&g.token, "token", g.token,
 		"GitHub personal access token")
 
-	if err := c.MarkPersistentFlagRequired("token"); err != nil {
-		panic(err)
-	}
-
 	// Including GitHub App API client flags.
 	g.client.PersistentFlags(c)
 }
@@ -192,30 +188,6 @@ func (g *GitHub) generateAppManifest() scrape.AppManifest {
 	}
 }
 
-// getCurrentGitHubUser executes a additional API call, with a new client, to
-// obtain the username for the informed GitHub App hostname.
-func (g *GitHub) getCurrentGitHubUser(
-	ctx context.Context,
-	hostname string,
-) (string, error) {
-	client := github.NewClient(nil).WithAuthToken(g.token)
-	if hostname != "github.com" {
-		baseURL := fmt.Sprintf("https://%s/api/v3/", hostname)
-		uploadsURL := fmt.Sprintf("https://%s/api/uploads/", hostname)
-		enterpriseClient, err := client.WithEnterpriseURLs(baseURL, uploadsURL)
-		if err != nil {
-			return "", err
-		}
-		client = enterpriseClient
-	}
-
-	user, _, err := client.Users.Get(ctx, "")
-	if err != nil {
-		return "", err
-	}
-	return user.GetLogin(), nil
-}
-
 // Data generates the GitHub App integration data after interacting with the
 // service API to create the application, storing the results of this interaction.
 func (g *GitHub) Data(
@@ -244,15 +216,7 @@ func (g *GitHub) Data(
 		return nil, err
 	}
 
-	g.log().With("hostname", u.Hostname()).
-		Info("Getting the current GitHub user from the application URL")
-	username, err := g.getCurrentGitHubUser(ctx, u.Hostname())
-	if err != nil {
-		return nil, err
-	}
-
-	g.log().With("username", username).
-		Debug("Generating the secret data for the GitHub App")
+	g.log().Debug("Generating the secret data for the GitHub App")
 	return map[string][]byte{
 		"clientId":      []byte(appConfig.GetClientID()),
 		"clientSecret":  []byte(appConfig.GetClientSecret()),
@@ -270,7 +234,6 @@ func (g *GitHub) Data(
 		"updatedAt":     []byte(appConfig.UpdatedAt.String()),
 		"webhookSecret": []byte(appConfig.GetWebhookSecret()),
 		"token":         []byte(g.token),
-		"username":      []byte(username),
 	}, nil
 }
 
