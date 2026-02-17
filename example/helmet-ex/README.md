@@ -220,15 +220,15 @@ Product Layer
 
 ```
 helmet-ex/
+├── custom_url_provider.go      # URLProvider for this example
 ├── main.go                     # Application entry point
-├── installer/
-│   ├── charts/                 # Folder with the installer's Helm charts
-│   ├── config.yaml             # Default installer configuration
-│   ├── embed.go                # Embed directives
-│   ├── installer.tar           # Generated tarball (git-ignored)
-│   ├── instructions.md         # MCP server guidance
-│   └── values.yaml.tpl         # Template file rendered as `values.yaml` and passed to Helm at deployment time
-└── custom_url_provider.go      # URLProvider for this example
+└── installer/
+    ├── charts/                 # Folder with the installer's Helm charts
+    ├── config.yaml             # Default installer configuration
+    ├── embed.go                # Embed directives
+    ├── installer.tar           # Generated tarball (git-ignored)
+    ├── instructions.md         # MCP server guidance
+    └── values.yaml.tpl         # Template file rendered as `values.yaml` and passed to Helm at deployment time
 ```
 
 ## Troubleshooting

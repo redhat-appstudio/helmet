@@ -142,11 +142,11 @@ database:
 The framework automatically generates a complete CLI:
 
 ```bash
-myapp config --create                    # Create configuration
-myapp integration github --token=<token> # Configure integrations
-myapp topology                           # View installation order
-myapp deploy                            # Deploy all products
-myapp mcp                               # Start MCP server
+myapp config --create       # Create configuration
+myapp integration ...       # Configure integrations
+myapp topology              # View installation order
+myapp deploy                # Deploy all products
+myapp mcp                   # Start MCP server
 ```
 
 ### Extensibility
