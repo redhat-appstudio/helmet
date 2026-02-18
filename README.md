@@ -2,9 +2,6 @@
     <a alt="Project quality report" href="https://goreportcard.com/report/github.com/redhat-appstudio/helmet">
         <img src="https://goreportcard.com/badge/github.com/redhat-appstudio/helmet">
     </a>
-    <a alt="Release workflow status" href="https://github.com/redhat-appstudio/helmet/actions">
-        <img src="https://github.com/redhat-appstudio/helmet/actions/workflows/release.yaml/badge.svg">
-    </a>
     <a alt="Latest project release" href="https://github.com/redhat-appstudio/helmet/releases/latest">
         <img src="https://img.shields.io/github/v/release/redhat-appstudio/helmet">
     </a>
@@ -14,327 +11,90 @@
 
 **A framework for building Kubernetes installers with Helm**
 
-Helmet provides a reusable, batteries-included framework for creating intelligent Kubernetes installers that understand dependency relationships, manage configuration, and orchestrate complex deployments.
+Helmet is a reusable Go library for creating intelligent Kubernetes installers
+that understand dependency relationships, manage configuration, and orchestrate
+complex multi-component deployments using Helm. It is designed to be imported
+into your own Go project, where it generates a complete CLI with commands for
+configuration, deployment, topology inspection, and AI-assisted workflows via
+the Model Context Protocol (MCP).
 
-## Overview
+## Key Capabilities
 
-Helmet is designed to be imported as a Go library to build custom installers for Kubernetes-based product suites. It handles the complexity of dependency resolution, configuration management, and deployment orchestration, allowing you to focus on defining your products and their relationships.
-
-### Key Capabilities
-
-- **Automatic Dependency Resolution**: Declares dependencies via Helm chart annotations and automatically determines installation order
-- **Configuration Management**: YAML-based configuration with Kubernetes ConfigMap persistence
-- **Template Engine**: Go templates for dynamic Helm values with cluster introspection
-- **Integration System**: Pluggable integrations for external services (Git providers, registries, etc.)
-- **Hook Scripts**: Execute custom logic before and after chart installations
-- **CLI Generation**: Automatically generates a complete CLI with config, deploy, and integration commands
-- **MCP Support**: Built-in Model Context Protocol server for AI assistant integration
-- **Monitoring**: Resource readiness checks and Helm test execution
+- **Automatic Dependency Resolution** — chart annotations declare dependencies;
+  the framework resolves installation order automatically
+- **Configuration Management** — YAML-based product configuration with
+  Kubernetes ConfigMap persistence
+- **Template Engine** — Go templates for dynamic Helm values with cluster
+  introspection
+- **Integration System** — pluggable integrations for Git providers, registries,
+  and external services
+- **MCP Support** — built-in MCP server for AI assistant integration
+- **Generated CLI** — complete CLI generated from your installer definition
+- **Hook Scripts** — execute custom logic before and after chart installations
+- **Monitoring** — resource readiness checks and Helm test execution
 
 ## Quick Start
 
-```go
-package main
-
-import (
-    _ "embed"
-    "os"
-    "github.com/redhat-appstudio/helmet/api"
-    "github.com/redhat-appstudio/helmet/framework"
-)
-
-//go:embed installer.tar
-var installerTarball []byte
-
-func main() {
-    // Create application context with metadata
-    appCtx := &api.AppContext{
-        Name:    "myapp",
-        Version: "1.0.0",
-    }
-
-    // Create and run the installer from embedded tarball
-    app, _ := framework.NewAppFromTarball(
-        appCtx,
-        installerTarball,
-        os.Getwd(),
-        framework.WithInstallerTarball(installerTarball),
-    )
-
-    app.Run()
-}
-```
-
-This generates a complete CLI with commands for configuration, deployment, topology inspection, and more.
-
-## Architecture
-
-Helmet uses a convention-based approach where your installer assets are organized in a predictable structure:
-
-```
-installer/
-├── config.yaml         # Configuration schema
-├── values.yaml.tpl     # Go template for Helm values
-├── charts/             # Helm charts directory
-│   ├── database/
-│   ├── api-server/
-│   └── frontend/
-└── instructions.md     # MCP server instructions (optional)
-```
-
-Charts declare dependencies and metadata via annotations:
-
-```yaml
-# charts/api-server/Chart.yaml
-annotations:
-  helmet.redhat-appstudio.github.com/product-name: "api"
-  helmet.redhat-appstudio.github.com/depends-on: "database"
-  helmet.redhat-appstudio.github.com/weight: "100"
-```
-
-The framework resolves dependencies, builds an installation topology, and orchestrates deployment in the correct order.
-
-## Features
-
-### Dependency Resolution
-
-Automatically resolves and orders chart installations based on:
-- Declared dependencies (`depends-on` annotation)
-- Weight-based prioritization (`weight` annotation)
-- Product associations (`product-name` annotation)
-- Integration requirements (`integrations-required` CEL expressions)
-
-See [Topology Documentation](docs/topology.md) for details.
-
-### Configuration System
-
-Product-based configuration with dynamic updates:
-
-```yaml
-myapp:
-  settings:
-    crc: false
-  products:
-    - name: test-product-name
-      enabled: true
-      namespace: test-product-namespace
-      properties:
-        manageSubscription: true
-```
-
-Configuration is stored as Kubernetes ConfigMaps and can be updated programmatically.
-
-### Template Engine
-
-Render Helm values dynamically based on configuration and cluster state:
-
-```yaml
-{{- $db := .Installer.Products.Database -}}
-{{- if $db.Enabled }}
-database:
-  replicas: {{ $db.Properties.replicas | default 1 }}
-  host: db.{{ .OpenShift.Ingress.Domain }}
-{{- end }}
-```
-
-### Generated CLI
-
-The framework automatically generates a complete CLI:
-
-```bash
-myapp config --create       # Create configuration
-myapp integration ...       # Configure integrations
-myapp topology              # View installation order
-myapp deploy                # Deploy all products
-myapp mcp                   # Start MCP server
-```
-
-### Extensibility
-
-Extend the framework with custom integrations, commands, and MCP tools:
+Import Helmet and embed your installer resources:
 
 ```go
-app := framework.NewApp("myapp", filesystem,
-    framework.WithInstallerTarball(InstallerTarball),
-    framework.WithIntegrations(customIntegrations...),
-    framework.WithMCPToolsBuilder(customMCPTools),
-)
-
-// Add custom commands
-rootCmd := app.Command()
-rootCmd.AddCommand(myCustomCommand)
-
+app, _ := framework.NewAppFromTarball(appCtx, installerTarball, cwd)
 app.Run()
 ```
 
+See [Getting Started](docs/getting-started.md) for a complete walkthrough.
+
 ## Installation
-
-### As a Library
-
-Import Helmet into your Go project:
 
 ```bash
 go get github.com/redhat-appstudio/helmet/framework
 ```
 
+## Example Implementation
+
+The [`example/helmet-ex/`](example/helmet-ex/) directory contains a complete
+reference implementation demonstrating all framework features:
+
+- Embedded installer tarball with overlay filesystem
+- Standard and custom integrations (GitHub, GitLab, Quay, ACS, and more)
+- MCP server with AI assistant instructions
+- Multi-layer dependency topology (foundation → infrastructure → products)
+- Build-time metadata injection via ldflags
+
+See the [example README](example/helmet-ex/README.md) for build instructions,
+command reference, and architecture details.
+
 ## Documentation
 
-- [Dependency Topology](docs/topology.md) - Chart dependency resolution and installation ordering
-- [MCP Server](docs/mcp.md) - AI assistant integration via Model Context Protocol
-- [Contributing Guide](CONTRIBUTING.md) - Development guidelines and best practices
-
-## Examples
-
-### Complete Example Application
-
-See [`example/helmet-ex/`](example/helmet-ex/) for a comprehensive example demonstrating all framework features.
-
-### Basic Installer
-
-```go
-package main
-
-import (
-    _ "embed"
-    "os"
-    "github.com/redhat-appstudio/helmet/api"
-    "github.com/redhat-appstudio/helmet/framework"
-)
-
-//go:embed installer.tar
-var installerTarball []byte
-
-func main() {
-    appCtx := &api.AppContext{Name: "myinstaller"}
-    cwd, _ := os.Getwd()
-
-    app, _ := framework.NewAppFromTarball(
-        appCtx,
-        installerTarball,
-        cwd,
-        framework.WithInstallerTarball(installerTarball),
-    )
-    app.Run()
-}
-```
-
-### With Custom Integrations
-
-```go
-import (
-    _ "embed"
-    "os"
-    "github.com/redhat-appstudio/helmet/api"
-    "github.com/redhat-appstudio/helmet/framework"
-)
-
-//go:embed installer.tar
-var installerTarball []byte
-
-type CustomIntegration struct{}
-
-func (i *CustomIntegration) Name() string { return "custom" }
-func (i *CustomIntegration) Init(ctx context.Context, logger logr.Logger, k8s *kubernetes.Clientset) (api.Integration, error) {
-    // Implementation
-    return &CustomIntegrationImpl{}, nil
-}
-func (i *CustomIntegration) Command(logger logr.Logger) (*cobra.Command, error) {
-    // CLI command definition
-    return &cobra.Command{Use: "custom"}, nil
-}
-
-func main() {
-    appCtx := &api.AppContext{Name: "myinstaller"}
-    cwd, _ := os.Getwd()
-
-    // Combine standard integrations with custom ones
-    integrations := append(
-        framework.StandardIntegrations(),
-        &CustomIntegration{},
-    )
-
-    app, _ := framework.NewAppFromTarball(
-        appCtx,
-        installerTarball,
-        cwd,
-        framework.WithInstallerTarball(installerTarball),
-        framework.WithIntegrations(integrations...),
-    )
-    app.Run()
-}
-```
-
-### With Custom MCP Tools
-
-```go
-import (
-    _ "embed"
-    "os"
-    "github.com/redhat-appstudio/helmet/api"
-    "github.com/redhat-appstudio/helmet/framework"
-    "github.com/redhat-appstudio/helmet/framework/mcpserver"
-)
-
-//go:embed installer.tar
-var installerTarball []byte
-
-func customTools(ctx api.AppContext, s *mcpserver.Server) error {
-    s.AddTool(mcpserver.Tool{
-        Name:        "myapp_status",
-        Description: "Get deployment status",
-        Handler: func(args map[string]interface{}) (interface{}, error) {
-            // Implementation
-            return map[string]string{"status": "healthy"}, nil
-        },
-    })
-    return nil
-}
-
-func main() {
-    appCtx := &api.AppContext{Name: "myinstaller"}
-    cwd, _ := os.Getwd()
-
-    app, _ := framework.NewAppFromTarball(
-        appCtx,
-        installerTarball,
-        cwd,
-        framework.WithInstallerTarball(installerTarball),
-        framework.WithMCPToolsBuilder(customTools),
-    )
-    app.Run()
-}
-```
+| Topic | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | First installer, prerequisites, build and run |
+| [Architecture & Design](docs/architecture.md) | Component relationships, extension points, design principles |
+| [Installer Structure](docs/installer-structure.md) | Tarball layout, embedded resources, overlay filesystem |
+| [Configuration](docs/configuration.md) | config.yaml schema, ConfigMap persistence, product properties |
+| [Dependency Topology](docs/topology.md) | Chart annotations, resolution algorithm, namespace assignment |
+| [Template Engine](docs/templating.md) | values.yaml.tpl syntax, custom functions, cluster introspection |
+| [Integrations](docs/integrations.md) | Integration system, product coupling, CEL expressions, custom integrations |
+| [MCP Server](docs/mcp.md) | MCP tools, container image for Jobs, custom tools, instructions.md |
+| [Example Charts](docs/example-charts.md) | Test chart reference, annotations, dependency graph |
+| [CLI Reference](docs/cli-reference.md) | Generated commands, flags, custom commands, SubCommand lifecycle |
+| [Hook Scripts](docs/hooks.md) | Pre/post deploy scripts in charts |
 
 ## Design Principles
 
-- **Convention over Configuration**: Predictable structure with sensible defaults
-- **Interface-Driven**: Extensibility through well-defined interfaces
-- **API Stability**: Functional options pattern for backward compatibility
-- **Kubernetes-Native**: First-class support for namespaces, RBAC, and cluster introspection
-- **Helm-Centric**: Leverages Helm's ecosystem and tooling
+Convention over configuration, interface-driven extensibility, API stability via
+functional options, Kubernetes-native, Helm-centric. See
+[Architecture & Design](docs/architecture.md) for details.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
-
-- Development environment setup
-- Code style guidelines
-- Testing requirements
-- Pull request process
-
-When contributing, please consider:
-- API stability and backward compatibility
-- Documentation for framework consumers
-- Test coverage for new features
-- Impact on existing consumers
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and pull
+request guidelines.
 
 ## Resources
 
 - [Project Homepage](https://github.com/redhat-appstudio/helmet)
 - [Documentation](docs/)
+- [Example Implementation](example/helmet-ex/)
 - [Issue Tracker](https://github.com/redhat-appstudio/helmet/issues)
 - [Releases](https://github.com/redhat-appstudio/helmet/releases)
-
----
-
-**Note**: This is a framework for building installers. For specific product installers built with Helmet, please refer to their respective repositories.

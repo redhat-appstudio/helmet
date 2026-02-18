@@ -7,6 +7,8 @@ The `example/helmet-ex/` directory contains a reference application (`helmet-ex`
 
 This project also provides an [`AGENTS.md`](AGENTS.md) file with context for AI-powered code assistants.
 
+Detailed documentation for framework internals lives in [`docs/`](docs/). See the [README](README.md) documentation table for a full index of topic pages.
+
 # Prerequisites
 
 - [Go 1.25 or higher][golang]
@@ -120,6 +122,18 @@ Vulnerability scanning uses [`govulncheck`][govulncheck] to check dependencies f
 ```bash
 make security
 ```
+
+# Pull Request Checklist
+
+Before submitting a PR, verify:
+
+- [ ] `make lint` passes
+- [ ] `make test-unit` passes
+- [ ] `make security` passes (runs `govulncheck`)
+- [ ] New or changed public API has test coverage
+- [ ] If the PR touches `api/` types, `framework/options.go`, `internal/annotations/`, `internal/constants/`, or build/test Makefile targets: review [`AGENTS.md`](AGENTS.md) and update if affected content changed
+- [ ] If the PR adds, removes, or renames a `docs/` page: update the documentation tables in both [`README.md`](README.md) and [`AGENTS.md`](AGENTS.md)
+- [ ] If the PR modifies framework behavior documented in `docs/`: update the relevant `docs/` page to match
 
 [docker]: https://docs.docker.com/get-docker
 [ginkgo]: https://onsi.github.io/ginkgo

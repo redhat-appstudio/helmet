@@ -27,38 +27,29 @@ Via [`Makefile`](./Makefile) — always use `make` (ensures build-time injection
 | `make test-e2e-mcp` | E2E MCP tests (requires cluster + image) |
 | `make lint` | Linting (`golangci-lint`) |
 
-**E2E tests** require a Kubernetes cluster via `KUBECONFIG`. Users provide their own cluster or use `make kind-up` / `make kind-down` for local KinD. The MCP suite requires a container image accessible to the cluster; build and push with `make image image-push IMAGE_REPOSITORY="<registry>"` using a registry the cluster can pull from.
+**E2E tests** require `KUBECONFIG` — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup details.
 
 ## Testing
 
-- **Assertions**: `github.com/onsi/gomega`
 - **Coverage**: >80% for `framework/`, `api/`, `internal/resolver`
-- **E2E suites**: `test/e2e/cli/` (CLI workflow), `test/e2e/mcp/` (MCP JSON-RPC workflow)
 - **Deps changed?** Run `go mod tidy -v && go mod vendor`
 
-## Critical Packages
+Details (assertions, E2E setup, teardown): [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-Consumer-facing — use functional options for extensibility:
+## PR Validation
 
-| Package | Scope |
-|---------|-------|
-| `framework/` | App bootstrap, CLI |
-| `api/` | `SubCommand`, `IntegrationModule`, `AppContext` |
+Run before submitting: `make lint && make test-unit && make security`
+
+Full checklist: [`CONTRIBUTING.md` § Pull Request Checklist](CONTRIBUTING.md#pull-request-checklist)
 
 ## Patterns
 
-| Pattern | Usage |
-|---------|-------|
-| Functional Options | `WithVersion()`, `WithIntegrations()` |
-| Interface-Driven | `SubCommand`: Complete → Validate → Run |
-| Builder | `TopologyBuilder` |
-| DI | Services via constructors |
+- **Functional Options** for extensibility (`WithVersion()`, `WithIntegrations()`)
+- **Interface-Driven**: `SubCommand`: Complete → Validate → Run
+- **Builder**: `TopologyBuilder` for dependency graphs
+- **DI**: Services via constructors
 
-## Error Handling
-
-```go
-return fmt.Errorf("failed to resolve dependencies for product %q: %w", name, err)
-```
+Full reference: [`docs/architecture.md`](docs/architecture.md)
 
 ## Conventions
 
@@ -66,6 +57,26 @@ return fmt.Errorf("failed to resolve dependencies for product %q: %w", name, err
 `product-name`, `depends-on`, `weight`, `integrations-provided`, `integrations-required`
 
 **Filesystem**: `config.yaml`, `values.yaml.tpl` (required) | `charts/`, `instructions.md`
+
+See [`docs/topology.md`](docs/topology.md), [`docs/installer-structure.md`](docs/installer-structure.md)
+
+## Documentation
+
+Detailed reference for each area lives in `docs/`. Read the relevant page when working in that area:
+
+| Area | File | When to read |
+|------|------|--------------|
+| Getting started | [`docs/getting-started.md`](docs/getting-started.md) | Setting up a new installer project |
+| Architecture & design | [`docs/architecture.md`](docs/architecture.md) | Component relationships, extension points |
+| Installer tarball & embed | [`docs/installer-structure.md`](docs/installer-structure.md) | Embedded resources, overlay FS, tarball layout |
+| Configuration system | [`docs/configuration.md`](docs/configuration.md) | Changing config schema, ConfigMap persistence, product properties |
+| Dependency topology | [`docs/topology.md`](docs/topology.md) | Modifying resolver, annotations, chart ordering |
+| Template engine | [`docs/templating.md`](docs/templating.md) | Editing values.yaml.tpl, adding template functions, cluster introspection |
+| Integrations & products | [`docs/integrations.md`](docs/integrations.md) | Integration lifecycle, product coupling, CEL expressions |
+| MCP server | [`docs/mcp.md`](docs/mcp.md) | MCP tools, container image for Jobs, instructions.md |
+| Example charts | [`docs/example-charts.md`](docs/example-charts.md) | Understanding test fixtures, chart annotation examples |
+| CLI reference | [`docs/cli-reference.md`](docs/cli-reference.md) | Adding custom commands, SubCommand lifecycle |
+| Hook scripts | [`docs/hooks.md`](docs/hooks.md) | Pre/post deploy scripts, hook execution lifecycle |
 
 ## Git
 
