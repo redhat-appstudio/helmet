@@ -4,6 +4,6 @@ description: Product C Service
 version: "1.0.0"
 annotations:
   helmet.redhat-appstudio.github.com/product-name: "Product C"
-  helmet.redhat-appstudio.github.com/depends-on: helmet-foundation, helmet-operators, helmet-networking, helmet-product-a
+  helmet.redhat-appstudio.github.com/depends-on: helmet-foundation, helmet-operators, helmet-networking
   helmet.redhat-appstudio.github.com/integrations-provided: nexus
   helmet.redhat-appstudio.github.com/integrations-required: acs

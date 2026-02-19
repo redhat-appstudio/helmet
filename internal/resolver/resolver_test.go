@@ -11,6 +11,20 @@ import (
 	o "github.com/onsi/gomega"
 )
 
+// resolveTopology creates a new Topology and resolves it using the provided
+// config and collection. Each sub-test calling this gets an independent topology.
+func resolveTopology(
+	g o.Gomega,
+	cfg *config.Config,
+	c *Collection,
+) *Topology {
+	topology := NewTopology()
+	r := NewResolver(cfg, c, topology)
+	err := r.Resolve()
+	g.Expect(err).To(o.Succeed())
+	return topology
+}
+
 func TestNewResolver(t *testing.T) {
 	g := o.NewWithT(t)
 
@@ -28,10 +42,7 @@ func TestNewResolver(t *testing.T) {
 	g.Expect(err).To(o.Succeed())
 
 	t.Run("Resolve", func(t *testing.T) {
-		topology := NewTopology()
-		r := NewResolver(cfg, c, topology)
-		err := r.Resolve()
-		g.Expect(err).To(o.Succeed())
+		topology := resolveTopology(g, cfg, c)
 
 		// Extracting the Helm chart names and namespaces from the topology.
 		deps := topology.Dependencies()
@@ -67,14 +78,74 @@ func TestNewResolver(t *testing.T) {
 		g.Expect(dependencySlice).To(o.Equal([]string{
 			"helmet-foundation",
 			"helmet-operators",
+			"helmet-networking",
+			"helmet-product-c",
 			"helmet-infrastructure",
 			"helmet-product-a",
 			"helmet-storage",
 			"helmet-product-b",
 			"helmet-integrations",
-			"helmet-networking",
-			"helmet-product-c",
 			"helmet-product-d",
 		}))
+	})
+
+	t.Run("Inspect", func(t *testing.T) {
+		topology := resolveTopology(g, cfg, c)
+
+		// Construct the CEL environment with the integration names used
+		// by the test charts.
+		cel, err := NewCEL("acs", "quay", "nexus")
+		g.Expect(err).To(o.Succeed())
+
+		// All integrations start unconfigured (no cluster secrets).
+		i := &Integrations{
+			configured: map[string]bool{
+				"acs":   false,
+				"quay":  false,
+				"nexus": false,
+			},
+			cel: cel,
+		}
+
+		// Inspect the resolved topology — after the fix this passes;
+		// before the fix it fails on helmet-product-c requiring "acs"
+		// because helmet-product-a (which provides "acs") appears later
+		// in the topology walk.
+		err = i.Inspect(topology)
+		g.Expect(err).To(o.Succeed())
+	})
+
+	t.Run("Inspect/missing integration", func(t *testing.T) {
+		topology := resolveTopology(g, cfg, c)
+
+		cel, err := NewCEL("acs", "quay", "nexus")
+		g.Expect(err).To(o.Succeed())
+
+		// All integrations unconfigured, and we build a topology where
+		// the provider of "acs" is absent so the requirement fails.
+		i := &Integrations{
+			configured: map[string]bool{
+				"acs":   false,
+				"quay":  false,
+				"nexus": false,
+			},
+			cel: cel,
+		}
+
+		// Build a minimal topology with only the consumer (product-c)
+		// and its non-product dependencies, but without product-a which
+		// provides "acs".
+		topologyWithoutProvider := NewTopology()
+		for _, d := range topology.Dependencies() {
+			// Skip product-a (the acs provider) to simulate it being
+			// absent from the topology.
+			if d.Name() == "helmet-product-a" {
+				continue
+			}
+			topologyWithoutProvider.Append(d)
+		}
+
+		err = i.Inspect(topologyWithoutProvider)
+		g.Expect(err).To(o.HaveOccurred())
 	})
 }

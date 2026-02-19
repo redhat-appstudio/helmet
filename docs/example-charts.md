@@ -15,7 +15,7 @@ This page documents the chart inventory, dependency graph, key architectural pat
 | `helmet-networking` | -- | helmet-foundation, helmet-operators | -- | -- | default (0) |
 | `helmet-product-a` | Product A | helmet-foundation, helmet-operators, helmet-infrastructure | `acs` | -- | default (0) |
 | `helmet-product-b` | Product B | helmet-foundation, helmet-operators, helmet-storage | `quay` | -- | default (0) |
-| `helmet-product-c` | Product C | helmet-foundation, helmet-operators, helmet-networking, helmet-product-a | `nexus` | `acs` | default (0) |
+| `helmet-product-c` | Product C | helmet-foundation, helmet-operators, helmet-networking | `nexus` | `acs` | default (0) |
 | `helmet-product-d` | Product D | helmet-foundation, helmet-operators, helmet-infrastructure, helmet-product-b, helmet-product-c | -- | `quay && nexus` | default (0) |
 | `helmet-integrations` | -- | helmet-product-a, helmet-product-b | -- | `acs && quay` | default (0) |
 
@@ -43,25 +43,25 @@ flowchart TD
     networking --> foundation & operators
     prodA --> foundation & operators & infra
     prodB --> foundation & operators & storage
-    prodC --> foundation & operators & networking & prodA
+    prodC --> foundation & operators & networking
     prodD --> foundation & operators & infra & prodB & prodC
     integrations --> prodA & prodB
 ```
 
 ### Deployment Order
 
-The resolver produces a linear installation sequence respecting all dependencies:
+The resolver produces a linear installation sequence respecting all dependencies. The order depends on `config.yaml` product declaration order combined with `depends-on` annotations:
 
 1. `helmet-foundation`
 2. `helmet-operators`
-3. `helmet-infrastructure` (depends on foundation, operators)
-4. `helmet-storage` (depends on foundation, operators, infrastructure)
-5. `helmet-networking` (depends on foundation, operators)
+3. `helmet-networking` (depends on foundation, operators)
+4. `helmet-product-c` (depends on foundation, operators, networking; provides `nexus`, requires `acs`)
+5. `helmet-infrastructure` (depends on foundation, operators)
 6. `helmet-product-a` (depends on foundation, operators, infrastructure; provides `acs`)
-7. `helmet-product-b` (depends on foundation, operators, storage; provides `quay`)
-8. `helmet-product-c` (depends on foundation, operators, networking, product-a; provides `nexus`, requires `acs`)
-9. `helmet-product-d` (depends on foundation, operators, infrastructure, product-b, product-c; requires `quay && nexus`)
-10. `helmet-integrations` (depends on product-a, product-b; requires `acs && quay`)
+7. `helmet-storage` (depends on foundation, operators, infrastructure)
+8. `helmet-product-b` (depends on foundation, operators, storage; provides `quay`)
+9. `helmet-integrations` (depends on product-a, product-b; requires `acs && quay`)
+10. `helmet-product-d` (depends on foundation, operators, infrastructure, product-b, product-c; requires `quay && nexus`)
 
 ## Feature Demonstrations
 
@@ -139,7 +139,7 @@ annotations:
   helmet.redhat-appstudio.github.com/integrations-required: "acs"
 ```
 
-This chart depends on `helmet-product-a` directly, ensuring `acs` is provided before Product C deploys.
+This chart does not depend on `helmet-product-a` directly — it relies on the integration validation system to ensure `acs` is provided by some chart in the topology, regardless of deployment order.
 
 **Product D** requires both `quay` AND `nexus` (boolean AND):
 
@@ -168,15 +168,15 @@ Products are controlled via `test/config.yaml`:
 ```yaml
 tssc:
   products:
+    - name: Product C
+      enabled: true
+      namespace: helmet-product-c
     - name: Product A
       enabled: true
       namespace: helmet-product-a
     - name: Product B
       enabled: true
       namespace: helmet-product-b
-    - name: Product C
-      enabled: true
-      namespace: helmet-product-c
     - name: Product D
       enabled: true
       namespace: helmet-product-d
@@ -190,17 +190,17 @@ helmet-ex integration acs --endpoint=acs.example.com:443 --token=SECRET
 
 ### Cross-Product Dependencies
 
-**Product C** depends on **Product A** via both explicit dependency and integration requirement:
+**Product C** depends on **Product A** via integration requirement only (no explicit dependency):
 
-- Explicit: `depends-on: helmet-product-a`
-- Implicit: `integrations-required: "acs"` satisfied by Product A's `integrations-provided: acs`
+- Integration: `integrations-required: "acs"` satisfied by Product A's `integrations-provided: acs`
+- Product C has no `depends-on` reference to Product A — the two-pass integration inspection validates that `acs` is provided by some chart in the topology regardless of ordering
 
 **Product D** depends on both **Product B** and **Product C**:
 
 - Explicit: `depends-on: helmet-product-b, helmet-product-c`
 - Implicit: `integrations-required: "quay && nexus"` satisfied by the combination of Product B (`quay`) and Product C (`nexus`)
 
-This demonstrates transitive dependency resolution where integration requirements propagate through the dependency graph.
+This demonstrates that integration requirements can be satisfied without explicit dependency edges — `depends-on` controls deployment order while `integrations-required/provided` controls validation independently.
 
 ### Namespace Assignment
 
