@@ -76,7 +76,6 @@ Detailed reference for each area lives in `docs/`. Read the relevant page when w
 | MCP server | [`docs/mcp.md`](docs/mcp.md) | MCP tools, container image for Jobs, instructions.md |
 | Example charts | [`docs/example-charts.md`](docs/example-charts.md) | Understanding test fixtures, chart annotation examples |
 | CLI reference | [`docs/cli-reference.md`](docs/cli-reference.md) | Adding custom commands, SubCommand lifecycle |
-| Hook scripts | [`docs/hooks.md`](docs/hooks.md) | Pre/post deploy scripts, hook execution lifecycle |
 
 ## Git
 

@@ -162,7 +162,7 @@ helmet-ex integration <type> [flags] [args]
 **Behavior:**
 - Stores secrets in the namespace defined by cluster configuration
 - Validates secret structure before creation
-- **Post-run hook**: Disables product providing the integration if secret already exists (prevents conflicts)
+- **Post-run behavior**: Disables product providing the integration if secret already exists (prevents conflicts)
 
 **Examples:**
 ```bash

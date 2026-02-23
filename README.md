@@ -30,7 +30,6 @@ the Model Context Protocol (MCP).
   and external services
 - **MCP Support** — built-in MCP server for AI assistant integration
 - **Generated CLI** — complete CLI generated from your installer definition
-- **Hook Scripts** — execute custom logic before and after chart installations
 - **Monitoring** — resource readiness checks and Helm test execution
 
 ## Quick Start
@@ -78,7 +77,6 @@ command reference, and architecture details.
 | [MCP Server](docs/mcp.md) | MCP tools, container image for Jobs, custom tools, instructions.md |
 | [Example Charts](docs/example-charts.md) | Test chart reference, annotations, dependency graph |
 | [CLI Reference](docs/cli-reference.md) | Generated commands, flags, custom commands, SubCommand lifecycle |
-| [Hook Scripts](docs/hooks.md) | Pre/post deploy scripts in charts |
 
 ## Design Principles
 

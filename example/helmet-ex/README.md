@@ -266,5 +266,4 @@ For debugging, check that instructions.md is embedded:
 - [Integrations](../../docs/integrations.md) -- integration system, custom integrations, CEL expressions
 - [MCP Server](../../docs/mcp.md) -- MCP tools, container image, custom tools
 - [CLI Reference](../../docs/cli-reference.md) -- generated commands and flags
-- [Hook Scripts](../../docs/hooks.md) -- pre/post deploy scripts
 - [Example Charts](../../docs/example-charts.md) -- test chart reference and dependency graph

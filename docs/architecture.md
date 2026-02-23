@@ -60,7 +60,6 @@ graph LR
 | `internal/chartfs/` | Filesystem abstraction for charts | No | `ChartFS`, `OverlayFS`, `BufferedFiles` |
 | `internal/installer/` | Orchestrates chart installation and MCP Jobs | No | `Installer`, `Job` |
 | `internal/k8s/` | Kubernetes client utilities | No | `Interface`, `Kube` |
-| `internal/hooks/` | Pre/post deployment hook scripts | No | `Hooks` (PreDeploy, PostDeploy) |
 | `internal/flags/` | Global CLI flag definitions | No | `Flags` (Debug, DryRun, KubeConfigPath, LogLevel, Timeout) |
 | `internal/subcmd/` | Standard CLI subcommand implementations | No | deploy, config, topology, integration, mcp-server, template, installer |
 | `internal/mcptools/` | MCP tool definitions for AI assistants | No | `Interface`, `MCPToolsBuilder` |
@@ -69,17 +68,15 @@ graph LR
 
 ## Request Lifecycle
 
-A deployment request flows through these stages. Steps 1-2 run once; steps 3-8 repeat **for each chart** in topological order:
+A deployment request flows through these stages. Steps 1-2 run once; steps 3-6 repeat **for each chart** in topological order:
 
 ```mermaid
 flowchart LR
     A["Load config.yaml"] --> B["Resolve topology"]
     B --> C["Render values.yaml.tpl"]
-    C --> D["Pre-deploy hook"]
-    D --> E["Helm install/upgrade"]
-    E --> F["Helm tests"]
-    F --> G["Monitor readiness"]
-    G --> H["Post-deploy hook"]
+    C --> D["Helm install/upgrade"]
+    D --> E["Helm tests"]
+    E --> F["Monitor readiness"]
 ```
 
 ### 1. Load Configuration
@@ -111,11 +108,7 @@ The `engine.Engine` processes `values.yaml.tpl` using Go's `text/template` with:
 
 See [templating.md](templating.md).
 
-### 4. Pre-Deploy Hook
-
-If the chart contains a `hooks/pre-deploy.sh` script, the framework executes it before the Helm operation. See [hooks.md](hooks.md).
-
-### 5. Helm Install/Upgrade
+### 4. Helm Install/Upgrade
 
 The `deployer.Helm` wraps the Helm SDK (`helm.sh/helm/v3`):
 
@@ -125,19 +118,15 @@ The `deployer.Helm` wraps the Helm SDK (`helm.sh/helm/v3`):
 
 Each chart deployment runs in its configured namespace.
 
-### 6. Helm Tests
+### 5. Helm Tests
 
 The `Installer` calls `Helm.VerifyWithRetry()`, which runs `action.ReleaseTesting` (equivalent to `helm test`) with up to 3 attempts and 1-minute delays between retries.
 
-### 7. Monitor Readiness
+### 6. Monitor Readiness
 
 The `monitor.Monitor` collects released resources via `Helm.VisitReleaseResources()` and queues monitoring functions for recognized resource types (currently `Namespace` and `ProjectRequest`). `Monitor.Watch()` polls the queue at 2-second intervals until all functions succeed or the `--timeout` deadline is reached.
 
-### 8. Post-Deploy Hook
-
-If the chart contains a `hooks/post-deploy.sh` script, the framework executes it after Helm tests and readiness monitoring complete. See [hooks.md](hooks.md).
-
-**Dry-run behavior**: When `--dry-run` is set, hooks (steps 4 and 8), Helm tests (step 6), and monitoring (step 7) are all skipped. Only the Helm install/upgrade (step 5) runs in server-side dry-run mode.
+**Dry-run behavior**: When `--dry-run` is set, Helm tests (step 5) and monitoring (step 6) are skipped. Only the Helm install/upgrade (step 4) runs in server-side dry-run mode.
 
 ## Design Principles
 
