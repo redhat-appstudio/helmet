@@ -5,6 +5,9 @@ tssc:
     ci:
       debug: false
   products:
+    - name: Product C
+      enabled: true
+      namespace: helmet-product-c
     - name: Product A
       enabled: true
       namespace: helmet-product-a
@@ -13,9 +16,6 @@ tssc:
       namespace: helmet-product-b
       properties:
         storageClass: standard
-    - name: Product C
-      enabled: true
-      namespace: helmet-product-c
     - name: Product D
       enabled: true
       namespace: helmet-product-d
