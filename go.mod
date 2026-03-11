@@ -1,6 +1,6 @@
 module github.com/redhat-appstudio/helmet
 
-go 1.25.8
+go 1.25.7
 
 require (
 	dario.cat/mergo v1.0.2
