@@ -99,8 +99,8 @@ dev.gaijin.team/go/exhaustruct/v4/internal/structure
 ## explicit; go 1.24
 dev.gaijin.team/go/golib/e
 dev.gaijin.team/go/golib/fields
-# github.com/42wim/httpsig v1.2.3
-## explicit; go 1.23.0
+# github.com/42wim/httpsig v1.2.4
+## explicit; go 1.25.0
 github.com/42wim/httpsig
 # github.com/4meepo/tagalign v1.4.3
 ## explicit; go 1.22.0
