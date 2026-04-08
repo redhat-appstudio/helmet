@@ -44,7 +44,7 @@ require (
 	cloud.google.com/go/monitoring v1.25.0 // indirect
 	cloud.google.com/go/storage v1.62.0 // indirect
 	code.gitea.io/sdk/gitea v0.22.1 // indirect
-	codeberg.org/chavacava/garif v0.2.0 // indirect
+	codeberg.org/chavacava/garif v0.2.1 // indirect
 	codeberg.org/polyfloyd/go-errorlint v1.9.0 // indirect
 	dev.gaijin.team/go/exhaustruct/v4 v4.0.0 // indirect
 	dev.gaijin.team/go/golib v0.6.0 // indirect
