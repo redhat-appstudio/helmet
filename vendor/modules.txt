@@ -10,8 +10,8 @@ al.essio.dev/pkg/shellescape
 # cel.dev/expr v0.25.1
 ## explicit; go 1.23.0
 cel.dev/expr
-# charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251120230642-dcccabe2cd63
-## explicit; go 1.24.2
+# charm.land/lipgloss/v2 v2.0.2
+## explicit; go 1.25.0
 charm.land/lipgloss/v2
 charm.land/lipgloss/v2/tree
 # cloud.google.com/go v0.123.0
@@ -669,8 +669,8 @@ github.com/chai2010/gettext-go/po
 # github.com/charithe/durationcheck v0.0.11
 ## explicit; go 1.16
 github.com/charithe/durationcheck
-# github.com/charmbracelet/colorprofile v0.4.1
-## explicit; go 1.24.2
+# github.com/charmbracelet/colorprofile v0.4.3
+## explicit; go 1.25.0
 github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/fang v0.4.4
 ## explicit; go 1.24.2
@@ -678,8 +678,8 @@ github.com/charmbracelet/fang
 # github.com/charmbracelet/lipgloss v1.1.0
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20251120225753-26363bddd922
-## explicit; go 1.24.2
+# github.com/charmbracelet/ultraviolet v0.0.0-20260330092749-0f94982c930b
+## explicit; go 1.25.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.6
 ## explicit; go 1.24.2
@@ -709,13 +709,10 @@ github.com/chrismellard/docker-credential-acr-env/pkg/token
 # github.com/ckaznocha/intrange v0.3.1
 ## explicit; go 1.23.0
 github.com/ckaznocha/intrange
-# github.com/clipperhouse/displaywidth v0.9.0
+# github.com/clipperhouse/displaywidth v0.11.0
 ## explicit; go 1.18
 github.com/clipperhouse/displaywidth
-# github.com/clipperhouse/stringish v0.1.1
-## explicit; go 1.18
-github.com/clipperhouse/stringish
-# github.com/clipperhouse/uax29/v2 v2.5.0
+# github.com/clipperhouse/uax29/v2 v2.7.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
 # github.com/cloudflare/circl v1.6.1
@@ -2007,7 +2004,7 @@ github.com/lib/pq/scram
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 ## explicit
 github.com/liggitt/tabwriter
-# github.com/lucasb-eyer/go-colorful v1.3.0
+# github.com/lucasb-eyer/go-colorful v1.4.0
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
 # github.com/macabu/inamedparam v0.2.0
@@ -2048,7 +2045,7 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-mastodon v0.0.10
 ## explicit; go 1.23
 github.com/mattn/go-mastodon
-# github.com/mattn/go-runewidth v0.0.19
+# github.com/mattn/go-runewidth v0.0.23
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
 # github.com/mgechev/revive v1.13.0
@@ -2938,7 +2935,7 @@ golang.org/x/oauth2/jwt
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.42.0
+# golang.org/x/sys v0.43.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
