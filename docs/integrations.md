@@ -40,6 +40,22 @@ Access standard integrations via:
 framework.StandardIntegrations() // Returns []api.IntegrationModule
 ```
 
+To register only a subset of the default integrations, use `SelectIntegrations` on any module slice — for example the standard list or a custom list that includes your modules:
+
+```go
+mods := framework.StandardIntegrations()
+mods, err := framework.SelectIntegrations(mods, "github", "quay")
+if err != nil {
+    return err
+}
+app, err := framework.NewAppFromTarball(
+    ctx, installerTarball, cwd,
+    framework.WithIntegrations(mods...),
+)
+```
+
+Unknown names produce an error listing all unknown names.
+
 ## Product-Integration Coupling
 
 Products and integrations form a bidirectional relationship through chart annotations.
@@ -264,6 +280,10 @@ Register with:
 
 ```go
 integrations := framework.StandardIntegrations()
+integrations, err := framework.SelectIntegrations(integrations, "github", "gitlab")
+if err != nil {
+    return err
+}
 integrations = framework.WithURLProvider(integrations, MyURLProvider{})
 
 app, _ := framework.NewAppFromTarball(
@@ -272,7 +292,7 @@ app, _ := framework.NewAppFromTarball(
 )
 ```
 
-`WithURLProvider` replaces the GitHub module with one that uses the provided `URLProvider` for URL generation, leaving all other integrations unchanged.
+Compose `SelectIntegrations` before `WithURLProvider` when you need both a subset and custom GitHub URLs. `WithURLProvider` replaces the GitHub module with one that uses the provided `URLProvider` for URL generation, leaving all other integrations unchanged.
 
 ## Credential Security
 
