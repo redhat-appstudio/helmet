@@ -6,18 +6,14 @@ helmet_ex:
       debug: false
   products:
     - name: Product C
-      enabled: true
       namespace: helmet-product-c
     - name: Product A
-      enabled: true
       namespace: helmet-product-a
     - name: Product B
-      enabled: true
       namespace: helmet-product-b
       properties:
         storageClass: standard
     - name: Product D
-      enabled: true
       namespace: helmet-product-d
       properties:
         catalogURL: https://github.com/redhat-appstudio/tssc-dev-multi-ci/blob/pre-release-v1.9.x/samples/all.yaml

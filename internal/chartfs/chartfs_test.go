@@ -43,5 +43,31 @@ func TestNewChartFS(t *testing.T) {
 		g.Expect(err).To(o.Succeed())
 		g.Expect(charts).ToNot(o.BeNil())
 		g.Expect(len(charts)).To(o.BeNumerically(">", 1))
+		found := false
+		for _, lc := range charts {
+			if lc.Path == "charts/testing" {
+				found = true
+				g.Expect(lc.Chart.Name()).To(o.Equal("testing"))
+				break
+			}
+		}
+		g.Expect(found).To(o.BeTrueBecause("charts/testing fixture must be indexed with Path"))
+	})
+
+	t.Run("ReadValuesTemplate prefers per-chart file", func(t *testing.T) {
+		b, used, err := c.ReadValuesTemplate("charts/testing", "values.yaml.tpl")
+		g.Expect(err).To(o.Succeed())
+		g.Expect(used).To(o.Equal("charts/testing/values.yaml.tpl"))
+		g.Expect(string(b)).To(o.ContainSubstring("helmet-chart-specific-values-marker"))
+	})
+
+	t.Run("ReadValuesTemplate falls back to root", func(t *testing.T) {
+		b, used, err := c.ReadValuesTemplate(
+			"charts/helmet-product-a",
+			"values.yaml.tpl",
+		)
+		g.Expect(err).To(o.Succeed())
+		g.Expect(used).To(o.Equal("values.yaml.tpl"))
+		g.Expect(string(b)).ToNot(o.ContainSubstring("helmet-chart-specific-values-marker"))
 	})
 }

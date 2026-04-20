@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/redhat-appstudio/helmet/api"
-	"helm.sh/helm/v3/pkg/chart"
+	"github.com/redhat-appstudio/helmet/internal/chartfs"
 )
 
 // Collection represents a collection of dependencies the Resolver can utilize.
@@ -97,13 +97,13 @@ func (c *Collection) GetProductNameForIntegration(integrationName string) string
 
 // NewCollection creates a new Collection from the given charts. It returns an
 // error if there are duplicate charts and product names.
-func NewCollection(_ *api.AppContext, charts []chart.Chart) (*Collection, error) {
+func NewCollection(_ *api.AppContext, charts []chartfs.LoadedChart) (*Collection, error) {
 	c := &Collection{dependencies: map[string]*Dependency{}}
 	// Stores the product names found in the slice of Helm charts.
 	productNames := []string{}
 	// Populating the collection with dependencies.
-	for _, hc := range charts {
-		d := NewDependency(&hc)
+	for _, lc := range charts {
+		d := NewDependencyWithChartPath(lc.Chart, lc.Path)
 		// Asserting the weight annotation is a valid integer.
 		if _, err := d.Weight(); err != nil {
 			return nil, fmt.Errorf("%w:  %w", ErrInvalidCollection, err)
