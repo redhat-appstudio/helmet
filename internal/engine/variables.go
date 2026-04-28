@@ -30,7 +30,23 @@ func (v *Variables) SetInstaller(cfg *config.Config) error {
 		products[product.KeyName()] = product
 	}
 	v.Installer["Products"], err = UnstructuredType(products)
-	return err
+	if err != nil {
+		return err
+	}
+	integrations := map[string]interface{}{}
+	for _, in := range cfg.Installer.Integrations {
+		key := in.Integration
+		if key == "" {
+			continue
+		}
+		integrations[key] = map[string]interface{}{
+			"Name":        in.Name,
+			"Integration": in.Integration,
+			"Properties":  in.Properties,
+		}
+	}
+	v.Installer["Integrations"] = integrations
+	return nil
 }
 
 func getMinorVersion(version string) (string, error) {

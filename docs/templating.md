@@ -233,12 +233,16 @@ ingress:
 
 ### Building Namespace Lists
 
-Collect namespaces for all enabled products:
+Collect namespaces for all active products (`Enabled` omitted or true means on; only explicit `false` opts out). Do not use `and .Enabled .Namespace` alone—`Enabled` is a `*bool` in config and is omitted from JSON when nil, which templates treat as falsy.
 
 ```yaml
 projects:
 {{- range .Installer.Products }}
-  {{- if and .Enabled .Namespace }}
+  {{- $active := true }}
+  {{- if and (kindIs "bool" .Enabled) (eq .Enabled false) }}
+    {{- $active = false }}
+  {{- end }}
+  {{- if and $active .Namespace }}
   - {{ .Namespace }}
   {{- end }}
 {{- end }}
@@ -277,34 +281,53 @@ openshift:
   minorVersion: {{ .OpenShift.MinorVersion }}
 {{- end }}
 
-# Product-specific values
-{{- if .Installer.Products.Product_A.Enabled }}
+# Product-specific values (explicit enabled:false opts out; omitted Enabled means on)
+{{- $a := index .Installer.Products "Product_A" }}
+{{- $aActive := true }}
+{{- if and (kindIs "bool" $a.Enabled) (eq $a.Enabled false) }}
+  {{- $aActive = false }}
+{{- end }}
+{{- if $aActive }}
 productA:
-  namespace: {{ .Installer.Products.Product_A.Namespace }}
+  namespace: {{ $a.Namespace }}
   enabled: true
 {{- end }}
 
-{{- if .Installer.Products.Product_B.Enabled }}
+{{- $b := index .Installer.Products "Product_B" }}
+{{- $bActive := true }}
+{{- if and (kindIs "bool" $b.Enabled) (eq $b.Enabled false) }}
+  {{- $bActive = false }}
+{{- end }}
+{{- if $bActive }}
 productB:
-  namespace: {{ .Installer.Products.Product_B.Namespace }}
+  namespace: {{ $b.Namespace }}
   enabled: true
   properties:
-{{- .Installer.Products.Product_B.Properties | toYaml | nindent 4 }}
+{{- $b.Properties | toYaml | nindent 4 }}
 {{- end }}
 
-{{- if .Installer.Products.Product_D.Enabled }}
+{{- $d := index .Installer.Products "Product_D" }}
+{{- $dActive := true }}
+{{- if and (kindIs "bool" $d.Enabled) (eq $d.Enabled false) }}
+  {{- $dActive = false }}
+{{- end }}
+{{- if $dActive }}
 productD:
-  namespace: {{ .Installer.Products.Product_D.Namespace }}
+  namespace: {{ $d.Namespace }}
   enabled: true
-  catalogURL: {{ required "catalogURL" .Installer.Products.Product_D.Properties.catalogURL }}
-  authProvider: {{ .Installer.Products.Product_D.Properties.authProvider | default "oidc" }}
+  catalogURL: {{ required "catalogURL" $d.Properties.catalogURL }}
+  authProvider: {{ $d.Properties.authProvider | default "oidc" }}
 {{- end }}
 
 # Namespace list for foundation chart
 foundation:
   projects:
 {{- range .Installer.Products }}
-  {{- if and .Enabled .Namespace }}
+  {{- $active := true }}
+  {{- if and (kindIs "bool" .Enabled) (eq .Enabled false) }}
+    {{- $active = false }}
+  {{- end }}
+  {{- if and $active .Namespace }}
     - {{ .Namespace }}
   {{- end }}
 {{- end }}

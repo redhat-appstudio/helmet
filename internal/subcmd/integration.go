@@ -55,11 +55,12 @@ func disableProductForIntegration(
 	if err != nil {
 		return err
 	}
-	if !spec.Enabled {
+	if !spec.IsActive() {
 		return nil // already disabled
 	}
 
-	spec.Enabled = false
+	disabled := false
+	spec.Enabled = &disabled
 	if err := cfg.SetProduct(productName, *spec); err != nil {
 		return err
 	}
