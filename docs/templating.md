@@ -1,6 +1,6 @@
 # Templating
 
-The framework uses Go's `text/template` engine to render `values.yaml.tpl` into Helm values before chart installation. This enables dynamic value generation based on installer configuration, cluster introspection, and live Kubernetes resources.
+The framework uses Go's `html/template` engine to render `values.yaml.tpl` into Helm values before chart installation. This enables dynamic value generation based on installer configuration, cluster introspection, and live Kubernetes resources.
 
 This page covers the template context structure, available functions, rendering lifecycle, and common patterns. For configuration schema and ConfigMap storage, see [configuration.md](configuration.md). For installer directory layout and `values.yaml.tpl` placement, see [installer-structure.md](installer-structure.md).
 
@@ -310,11 +310,136 @@ foundation:
 {{- end }}
 ```
 
+## Production Patterns
+
+The patterns above show individual template features in isolation. This section covers how to structure a multi-product `values.yaml.tpl` at production scale — preambles, derived variables, YAML anchors, and cross-product logic.
+
+### Preamble Structure
+
+Production templates start with a preamble that extracts products and cluster state using `required()`, then derives shared variables:
+
+```yaml
+---
+{{- $productA := required "Product_A" .Installer.Products.Product_A -}}
+{{- $productB := required "Product_B" .Installer.Products.Product_B -}}
+{{- $domain := required "OpenShift domain" .OpenShift.Ingress.Domain -}}
+{{- $routerCA := required "OpenShift router CA" .OpenShift.Ingress.RouterCA -}}
+
+{{- $crc := dig "crc" false .Installer.Settings -}}
+{{- $protocol := "https" -}}
+{{- if $crc }}{{ $protocol = "http" }}{{ end -}}
+
+{{- $keycloakEnabled := or $productA.Enabled $productB.Enabled -}}
+```
+
+Use `required()` for values that must exist — template rendering fails early with a descriptive error instead of producing broken YAML.
+
+### Mid-File Variables
+
+Not all variables belong in the preamble. Variables scoped to a single section can be defined immediately before that section:
+
+```yaml
+{{- $databaseSecretName := dig "databaseSecret" "my-db-secret" $productA.Properties -}}
+
+#
+# product-a
+#
+productA:
+  database:
+    secretName: {{ $databaseSecretName }}
+```
+
+This is a pragmatic alternative to a monolithic preamble — variables stay near their usage, making maintenance easier.
+
+### Section Structure
+
+Each chart gets a comment block and root-key section. Fields are rendered from preamble or section-local variables:
+
+```yaml
+#
+# chart-name
+#
+rootKey:
+  enabled: {{ $productA.Enabled }}
+  namespace: {{ $productA.Namespace }}
+  url: {{ $protocol }}://app.{{ $domain }}
+```
+
+### YAML Anchors
+
+Use YAML anchors (`&name` / `*name`) for shared configuration blocks — database credentials, OIDC settings, ingress config. Anchors also bridge values across root keys for multi-component charts:
+
+```yaml
+trustedProfileAnalyzer:
+  database: &tpaDatabase
+    name:
+      valueFrom:
+        secretKeyRef:
+          name: {{ $databaseSecretName }}
+          key: dbname
+  createDatabase: *tpaDatabase
+  migrateDatabase: *tpaDatabase
+  storage: &tpaStorage
+    type: filesystem
+    size: 32Gi
+  oidc: &tpaOIDC
+    issuerUrl: {{ $oidcIssuerURL }}
+
+trustification:
+  storage: *tpaStorage
+  oidc: *tpaOIDC
+```
+
+Companion charts can inherit their parent's entire configuration via anchors (e.g., `acsTest: *acs`).
+
+### URL Composition
+
+Always compose URLs from `$protocol` + `$domain`. Never hardcode protocol or domain:
+
+```yaml
+appUrl: {{ $protocol }}://app.{{ $domain }}
+```
+
+This ensures CRC/development-mode toggles and domain changes propagate everywhere.
+
+### Cross-Product Conditionals
+
+Extract composite booleans to named variables instead of writing inline logic:
+
+```yaml
+{{- $keycloakEnabled := or $tpa.Enabled $tas.Enabled (and $rhdh.Enabled (eq $authProvider "oidc")) -}}
+```
+
+Use `and`/`or` (variadic Sprig functions), not `&&`/`||`.
+
+### Core Sprig Subset
+
+The following functions cover the vast majority of production templates: `required`, `dig`, `default`, `printf`, `indent`, `toYaml`, `and`, `or`, `not`, `eq`, `list`, `range`. Start with these and add others only when the pattern demands it. The full Sprig library is available — see [Sprig documentation](https://masterminds.github.io/sprig/) for edge cases.
+
+## Anti-Patterns
+
+Common mistakes to avoid in `values.yaml.tpl` authoring:
+
+| Anti-Pattern | Why It Breaks | Fix |
+|---|---|---|
+| Hardcoded URLs | Breaks CRC/dev mode, ignores domain config | Compose from `$protocol` + `$domain` |
+| Duplicated values across sections | Drift between copies, maintenance burden | Derive once in preamble or section-local variable |
+| Inline boolean logic | Unreadable, error-prone in complex cases | Extract to named variables (e.g., `$keycloakEnabled`) |
+| Missing `required()` for mandatory paths | Silent nil renders as `<nil>` in YAML | Wrap product and cluster extractions with `required()` |
+| Unfulfilled `__OVERWRITE_ME__` placeholders | Chart receives placeholder string at deploy time | Every placeholder in values.yaml must have a corresponding template expression |
+| `nindent` not last in pipeline | Indentation applied before serialization | Always: `toYaml \| nindent N` (serialization before indentation) |
+| `index` instead of `dig` | Errors or returns zero value on missing intermediate keys; no default value support | Use `dig` with a default value for safe deep access |
+| Unintentional multiple root keys | Chart receives values from wrong root | One primary root key per chart; secondary keys only for sub-components or debug flags |
+
+### Engine Caveat
+
+Helmet uses `html/template` (not `text/template`). HTML entities (`<`, `>`, `&`) are auto-escaped in all pipeline output — including strings returned by `toYaml` and `toJson`. In practice, this only affects values containing `<`, `>`, or `&` literals; most Kubernetes configuration values do not include these characters.
+
 ## Scope Boundaries
 
 This document covers template rendering mechanics and the `values.yaml.tpl` syntax. Related topics:
 
-- **Configuration schema**: See [configuration.md](configuration.md) for `config.yaml` structure, product specifications, and ConfigMap persistence
+- **Configuration schema**: See [configuration.md](configuration.md) for `config.yaml` structure, product specifications, [the triad](configuration.md#the-triad), and ConfigMap persistence
 - **Installer packaging**: See [installer-structure.md](installer-structure.md) for directory layout, embedding, and the overlay filesystem
-- **Dependency resolution**: See [topology.md](topology.md) for chart ordering and annotation-based dependencies
+- **Dependency resolution**: See [topology.md](topology.md) for chart ordering, annotation-based dependencies, and [companion chart patterns](topology.md#companion-charts--multi-root-key-patterns)
 - **OpenShift introspection**: Implemented in `internal/k8s/openshift.go`

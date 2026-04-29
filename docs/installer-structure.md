@@ -202,6 +202,82 @@ func NewAppFromTarball(
 3. Wrap in `ChartFS`: `chartfs.New(ofs)`
 4. Pass to `NewApp()` with all options applied
 
+## Build Pipeline
+
+The installer build process has a strict dependency: the tarball must be created before the Go binary is compiled, because `go:embed` requires the tarball file to exist at build time.
+
+### Makefile Targets
+
+| Target | Purpose | Notes |
+|---|---|---|
+| `installer-tarball` | Package installer directory into `installer.tar` | Must run before `build` |
+| `build` | Compile Go binary with version injection | Depends on `installer-tarball` |
+| `image` | Build container image | Multi-stage Containerfile |
+| `lint` | Run linters (`golangci-lint`) | Code quality checks |
+| `security` | Run security scanners (`govulncheck`) | Vulnerability detection |
+
+### Tarball-Before-Build Dependency
+
+The `installer-tarball` target must run before `go build`. The `build` target should declare this dependency explicitly:
+
+```makefile
+build: installer-tarball
+	go build -ldflags "-X main.version=$(VERSION) -X main.commitID=$(COMMIT_ID)" -o bin/my-app ./cmd
+```
+
+If `installer.tar` does not exist when `go build` runs, the `go:embed` directive in `embed.go` fails with a compilation error.
+
+### GNU tar on macOS
+
+On macOS, use GNU tar (`gtar`) instead of the system BSD tar for consistent behavior. BSD tar and GNU tar handle symlinks, permissions, and extended attributes differently. Install via `brew install gnu-tar`.
+
+### Container Image
+
+The Containerfile uses a multi-stage build:
+
+1. **Builder stage**: Compiles the Go binary with build args for `BUILD_VERSION` and `COMMIT_ID` injected via ldflags
+2. **Runtime stage**: Copies the compiled binary and required tools (`kubectl`, `oc`, `jq`) into a minimal base image
+
+Build args enable version tracking in the final image without carrying the full build toolchain.
+
+## Chart Provenance
+
+A Helmet installer is a **composition of Helm charts**. Most installers combine external charts (for products with existing Helm charts) and authored charts (for infrastructure and integration glue). The framework is chart-agnostic — it loads whatever is in the `charts/` directory.
+
+### Bringing External Charts
+
+The primary workflow for building an installer:
+
+1. **Copy** the chart directory into `charts/<name>/`
+2. **Add Helmet annotations** to `Chart.yaml` — `product-name`, `depends-on`, and integration annotations as needed
+3. **Set the root key** in `values.yaml` — conventionally derived from the chart name, must be unique across all charts
+4. **Add `__OVERWRITE_ME__` placeholders** in `values.yaml` for values that should be dynamically rendered by `values.yaml.tpl`
+5. **Wire up** a corresponding section in `values.yaml.tpl` and a product entry in `config.yaml` (if the chart maps to a product)
+
+**Helm `dependencies:` handling**: Upstream charts may use `dependencies:` in `Chart.yaml` for sub-chart resolution. The framework ignores this field for topology resolution — it reads `depends-on` annotations instead. However, Helm itself still processes `dependencies:` during install (pulling and rendering sub-charts with values merging). Only remove `dependencies:` entries when you intend to surface the sub-chart as a separate Helmet-managed topology node; otherwise, keep the upstream `dependencies:` so Helm continues to handle sub-chart rendering and values merging. Express inter-chart relationships via `depends-on` annotations regardless.
+
+### Authoring New Charts
+
+A secondary workflow for installer-specific charts that don't exist upstream:
+
+- **Namespace charts**: Create OpenShift projects, set labels and annotations
+- **Operator subscription charts**: Deploy OLM Subscriptions for operators the installer manages
+- **Integration aggregation charts**: Collect and validate integration Secrets
+- **Companion and test charts**: Validation or post-deploy checks for a product
+
+These charts are typically thin — a few templates, minimal values — and are authored from scratch. See [topology.md](topology.md#infrastructure-charts--derived-products) for infrastructure chart patterns.
+
+### Composition Model
+
+The filesystem is the composition mechanism. Copy charts into `charts/`, add annotations, wire up `config.yaml` and `values.yaml.tpl`. No catalog or registry feature is needed — the directory structure is the source of truth.
+
+A realistic installer combines both paths. Plan the composition by considering:
+
+- **Inventory**: What products does the installer deploy? Which have existing Helm charts?
+- **Gap analysis**: What infrastructure charts are needed (namespaces, operators, shared databases)?
+- **Dependency design**: How do the charts relate? What deployment order is required?
+- **Integration mapping**: Which charts provide or require integrations?
+
 ## The `instructions.md` File
 
 The optional `instructions.md` provides context to AI assistants when the installer runs as an MCP server. The MCP client (e.g., Claude Desktop, Cursor) receives this content, helping the AI understand available products, workflow phases, and tool usage.
@@ -212,7 +288,8 @@ See [mcp.md](mcp.md) for MCP server implementation details.
 
 ## Cross-References
 
-- [Configuration](configuration.md) — config.yaml schema and values rendering
-- [Topology](topology.md) — chart dependency resolution and deployment ordering
+- [Configuration](configuration.md) — config.yaml schema, values rendering, [the triad](configuration.md#the-triad)
+- [Topology](topology.md) — chart dependency resolution, deployment ordering, [infrastructure charts](topology.md#infrastructure-charts--derived-products)
+- [Templating](templating.md) — values.yaml.tpl syntax and [production patterns](templating.md#production-patterns)
 - [MCP Server](mcp.md) — Model Context Protocol server implementation
 - [Getting Started](getting-started.md) — building your first installer

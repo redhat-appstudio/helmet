@@ -72,6 +72,30 @@ Examples:
 - `Product A` → `Product_A`
 - `my-product` → `my_product`
 
+### The Triad
+
+Every product chart creates three linked identifiers that must stay consistent
+across config.yaml, Chart.yaml, and values.yaml.tpl:
+
+| Identifier | Source | Appears In |
+|---|---|---|
+| product name | config.yaml `name` field | Chart.yaml `product-name` annotation |
+| keyName | Sanitized product name (see [KeyName conversion](#product-name-and-keyname) above) | `.Installer.Products.<keyName>` in values.yaml.tpl |
+| root-key | Chart's values.yaml primary root attribute | values.yaml.tpl section header |
+
+The root-key is conventionally derived from the chart name (not the keyName).
+The naming style is project-level — use camelCase, snake_case, or lowercase
+consistently within a project. What matters is uniqueness across all charts:
+the framework passes the full rendered values to every chart, so each chart's
+templates access only their root key via `.Values.rootKey`.
+
+Infrastructure charts (no `product-name` annotation) are outside the triad —
+they have a root-key and a values.yaml.tpl section but no config.yaml entry.
+See [Topology: Infrastructure Charts](topology.md#infrastructure-charts--derived-products).
+
+When adding or modifying a product, update all three artifacts together:
+config.yaml, Chart.yaml annotation, and values.yaml.tpl section header.
+
 ### Namespace Resolution
 
 Products use the following namespace resolution order:
@@ -249,7 +273,7 @@ The `ApplyDefaults()` method propagates the installer namespace to products with
 
 ## Cross-References
 
-- [Topology](topology.md) — chart annotations, dependency resolution, and installation order
-- [Templating](templating.md) — values.yaml.tpl syntax and template functions
+- [Topology](topology.md) — chart annotations, dependency resolution, installation order, [infrastructure charts](topology.md#infrastructure-charts--derived-products)
+- [Templating](templating.md) — values.yaml.tpl syntax, template functions, [production patterns](templating.md#production-patterns)
 - [MCP Server](mcp.md) — configuration tools for AI-assisted workflows
 - [CLI Reference](cli-reference.md) — `config` command usage

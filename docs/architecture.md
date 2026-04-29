@@ -100,7 +100,7 @@ The result is a `Topology` representing the sorted installation order. See [topo
 
 ### 3. Render Values Template
 
-The `engine.Engine` processes `values.yaml.tpl` using Go's `text/template` with:
+The `engine.Engine` processes `values.yaml.tpl` using Go's `html/template` with:
 
 - **Sprig Functions**: Full Sprig library
 - **Custom Functions**: `toYaml`, `fromYaml`, `fromYamlArray`, `toJson`, `fromJson`, `fromJsonArray`, `required`, `lookup`

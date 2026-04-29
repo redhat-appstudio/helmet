@@ -23,7 +23,7 @@ Charts declare dependencies and metadata using annotations in `Chart.yaml`. All 
 | `product-name` | Associates chart with a product | String |
 | `use-product-namespace` | Deploy into another product's namespace | String (product name) |
 | `depends-on` | Explicit dependency list | Comma-separated chart names |
-| `weight` | Installation priority | Integer; higher = earlier, default `0`, negative allowed |
+| `weight` | Installation order | Integer; higher = later, default `0`, negative allowed |
 | `integrations-provided` | Integrations this chart creates | Comma-separated integration names |
 | `integrations-required` | Integration requirements | CEL expression |
 
@@ -58,7 +58,7 @@ The resolver detects circular dependencies and panics with a detailed cycle trac
 
 ### `weight`
 
-Integer defining installation priority within a dependency tier. Higher weights install earlier; lower weights install later. Default is `0` when the annotation is absent. Negative values are allowed — a chart with a negative weight installs after all zero-weight peers in the same tier.
+Integer defining installation order within a dependency tier. Higher weights install later; lower weights install earlier. Default is `0` when the annotation is absent. Negative values are allowed — a chart with a negative weight installs before zero-weight peers in the same tier.
 
 The value is parsed with `strconv.Atoi`, so any valid integer string is accepted (e.g., `"-10"`, `"0"`, `"500"`).
 
@@ -71,11 +71,10 @@ annotations:
 
 | Range | Purpose | Examples |
 |-------|---------|----------|
-| 1000+ | Infrastructure and cluster operators | CRD installers, namespaces |
-| 500-999 | Platform services | Databases, message queues |
-| 100-499 | Application services | APIs, web services |
-| 0-99 | User applications and integrations | Business applications |
-| Negative | Deferred charts within a tier | Post-deployment validation, cleanup |
+| Negative | Infrastructure and early-stage charts | CRD installers, namespace setup |
+| 0 (default) | Standard deployment order | Most application charts |
+| 1-98 | Late-stage application services | Dependent services, post-configuration |
+| 99+ | Companion and deferred charts | Post-deployment validation, cleanup |
 
 ### `integrations-provided`
 
@@ -129,15 +128,15 @@ When a chart declares dependencies via `depends-on`:
    - Set the dependency's namespace
    - Insert the dependency before the current chart
 3. Detect circular dependencies using a `visited` map
-4. Sort dependencies by weight (higher weight = earlier position)
+4. Sort dependencies by weight (higher weight = later position)
 
 ### Weight-Based Ordering
 
 When inserting a dependency into the topology:
-- **Higher weight** → inserted earlier in the sequence
-- **Lower weight (including negative)** → inserted later in the sequence
+- **Higher weight** → inserted later in the sequence
+- **Lower weight (including negative)** → inserted earlier in the sequence
 - **Equal weight** → order determined by dependency relationships
-- **Same weight, no dependency relationship** → alphabetical order by chart name (guaranteed by `Collection.Walk()` sorting chart names with `slices.Sort` before resolution)
+- **Same weight, no dependency relationship** → insertion order from `Collection.Walk()`, which iterates chart names alphabetically
 
 ## The TopologyBuilder Pipeline
 
@@ -222,9 +221,66 @@ Enable a product that provides the integration, or create the integration manual
 
 If a product is enabled but its chart doesn't appear in the topology, verify the product name in `config.yaml` matches the `product-name` annotation exactly (case-sensitive).
 
+## Infrastructure Charts & Derived Products
+
+Not all charts map to products in config.yaml. Infrastructure and foundation charts handle shared concerns — namespace setup, operator subscriptions, shared databases, IAM, integration aggregation. In production installers, 40–60% of charts are infrastructure with no product entry.
+
+Infrastructure charts are **outside the triad**: they have a root-key and a values.yaml.tpl section but no `product-name` annotation and no config.yaml entry. They may have no Helmet annotations at all (serving as base layers), or use only `depends-on` and integration annotations.
+
+| Chart Pattern | Purpose | Typical Annotations |
+|---|---|---|
+| Namespace setup | Create OpenShift projects | None |
+| Operator subscriptions | Install OLM operators | None or `depends-on` |
+| Shared databases | PostgreSQL for multiple products | `depends-on` |
+| IAM / Identity | Keycloak realm, routes, services | `depends-on`, `integrations-provided` |
+| Integration aggregation | Collect integration secrets | `depends-on` |
+
+**Derived products** are charts whose enablement is computed from other products' state rather than configured directly. The canonical example is IAM/Keycloak, where enablement grows with the number of dependent products:
+
+```yaml
+{{- $keycloakEnabled := or $tpa.Enabled $tas.Enabled -}}
+```
+
+Derived products have no entry in config.yaml. Their enablement and configuration are derived in `values.yaml.tpl` from other products. Namespace assignment follows the standard topology resolution (installer default namespace, or inherited via `use-product-namespace` annotation). When adding or removing products, trace derived enablement logic -- disabling all upstream products implicitly disables the derived chart.
+
+See [example-charts.md](example-charts.md) for concrete infrastructure chart examples from the test fixtures.
+
+## Companion Charts & Multi-Root-Key Patterns
+
+**Companion charts** are satellite charts that extend a product chart. They deploy in their parent product's namespace using `use-product-namespace` and control ordering with `weight`:
+
+```yaml
+# charts/my-product-test/Chart.yaml
+annotations:
+  helmet.redhat-appstudio.github.com/use-product-namespace: "My Product"
+  helmet.redhat-appstudio.github.com/depends-on: "my-product"
+  helmet.redhat-appstudio.github.com/weight: "99"
+```
+
+The `weight: "99"` ensures the companion deploys after its parent within the same dependency tier (higher weight = later). Companion charts inherit their parent's values via YAML anchors in values.yaml.tpl:
+
+```yaml
+myProduct: &myProduct
+  enabled: true
+  namespace: {{ $myProduct.Namespace }}
+
+myProductTest: *myProduct
+```
+
+**Prerequisite splits** are different from companions — they are charts split out for lifecycle separation. A prerequisite deploys *before* its dependent chart (no `use-product-namespace`, no `weight`). It is structurally an infrastructure chart.
+
+**Multi-root-key charts** have more than one top-level key in values.yaml. This is acceptable for:
+
+1. **Sub-components** with distinct value trees but shared config (bridged via YAML anchors, e.g., `trustedProfileAnalyzer` + `trustification`)
+2. **Cross-cutting concerns** like debug flags that don't belong under the primary key
+
+Each chart should have one identifiable primary root key. Secondary keys are acceptable when justified — warn on unintentional cases.
+
+See [example-charts.md](example-charts.md) for chart annotation examples.
+
 ## Best Practices
 
-- Use high weights (1000+) for infrastructure charts
+- Use low or negative weights for infrastructure charts that must deploy first
 - Prefer explicit `depends-on` over implicit weight ordering
 - One `product-name` per product
 - Validate topology before production: `helmet-ex topology`
@@ -233,6 +289,7 @@ If a product is enabled but its chart doesn't appear in the topology, verify the
 ## Cross-References
 
 - [Integrations](integrations.md) — integration configuration, CEL expression syntax
-- [Configuration](configuration.md) — product and namespace configuration
+- [Configuration](configuration.md) — product and namespace configuration, [the triad](configuration.md#the-triad)
+- [Templating](templating.md) — values.yaml.tpl syntax, [YAML anchors and production patterns](templating.md#production-patterns)
 - [Example Charts](example-charts.md) — complete chart examples with annotations
 - [CLI Reference](cli-reference.md) — `topology` command usage
