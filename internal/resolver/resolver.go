@@ -82,7 +82,7 @@ func (r *Resolver) dependsOn(
 			if err != nil {
 				return err
 			}
-			if !productSpec.Enabled {
+			if !productSpec.IsActive() {
 				continue
 			}
 		}

@@ -1,0 +1,5 @@
+name: tssc
+products:
+  - local://acs
+integrations:
+  - local://quay

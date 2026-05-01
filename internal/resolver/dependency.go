@@ -15,6 +15,7 @@ import (
 type Dependency struct {
 	chart     *chart.Chart // helm chart instance
 	namespace string       // target namespace
+	chartPath string       // chart directory relative to ChartFS (for per-chart values.yaml.tpl)
 }
 
 // Dependencies represents a slice of Dependency instances.
@@ -25,6 +26,7 @@ func (d *Dependency) LoggerWith(logger *slog.Logger) *slog.Logger {
 	return logger.With(
 		"dependency-name", d.Name(),
 		"dependency-namespace", d.Namespace(),
+		"dependency-chart-dir", d.ChartPath(),
 	)
 }
 
@@ -41,6 +43,12 @@ func (d *Dependency) Name() string {
 // Namespace returns the namespace.
 func (d *Dependency) Namespace() string {
 	return d.namespace
+}
+
+// ChartPath returns the filesystem path of the chart directory relative to ChartFS,
+// used to resolve chart-local values.yaml.tpl.
+func (d *Dependency) ChartPath() string {
+	return d.chartPath
 }
 
 // SetNamespace sets the namespace for this dependency.
@@ -104,13 +112,25 @@ func (d *Dependency) IntegrationsRequired() string {
 // NewDependency creates a new Dependency for the Helm chart and initially using
 // empty target namespace.
 func NewDependency(hc *chart.Chart) *Dependency {
-	return &Dependency{chart: hc}
+	return NewDependencyWithChartPath(hc, "")
+}
+
+// NewDependencyWithChartPath creates a Dependency that knows its chart directory
+// on ChartFS for per-chart values templates.
+func NewDependencyWithChartPath(hc *chart.Chart, chartPath string) *Dependency {
+	return &Dependency{chart: hc, chartPath: chartPath}
 }
 
 // NewDependencyWithNamespace creates a new Dependency for the Helm chart and sets
 // the target namespace.
 func NewDependencyWithNamespace(hc *chart.Chart, ns string) *Dependency {
-	d := NewDependency(hc)
+	return NewDependencyWithNamespaceAndChartPath(hc, ns, "")
+}
+
+// NewDependencyWithNamespaceAndChartPath creates a Dependency with namespace and
+// chart directory path.
+func NewDependencyWithNamespaceAndChartPath(hc *chart.Chart, ns, chartPath string) *Dependency {
+	d := NewDependencyWithChartPath(hc, chartPath)
 	d.SetNamespace(ns)
 	return d
 }

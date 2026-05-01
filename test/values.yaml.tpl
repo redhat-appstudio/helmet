@@ -8,7 +8,11 @@ debug:
 helmet_foundation:
   projects:
 {{- range .Installer.Products }}
-  {{- if (and .Enabled .Namespace) }}
+  {{- $active := true }}
+  {{- if and (kindIs "bool" .Enabled) (eq .Enabled false) }}
+    {{- $active = false }}
+  {{- end }}
+  {{- if and $active .Namespace }}
       - {{ .Namespace }}
   {{- end }}
 {{- end }}
