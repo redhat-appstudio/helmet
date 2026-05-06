@@ -1,6 +1,8 @@
 package chartfs
 
 import (
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -97,6 +99,65 @@ func (c *ChartFS) GetAllCharts() ([]chart.Chart, error) {
 		charts = append(charts, *chart)
 	}
 	return charts, nil
+}
+
+func (c *ChartFS) extractChartDir(destDir, chartDir string) error {
+	return fs.WalkDir(c.fsys, chartDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("walking %q: %w", path, err)
+		}
+		target := filepath.Join(destDir, path)
+		if d.IsDir() {
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return fmt.Errorf("creating directory %q: %w", target, err)
+			}
+			if err := os.Chmod(target, 0o755); err != nil {
+				return fmt.Errorf("setting directory permissions on %q: %w", target, err)
+			}
+			return nil
+		}
+		return c.extractFile(target, path)
+	})
+}
+
+func (c *ChartFS) extractFile(target, srcPath string) error {
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		return fmt.Errorf("creating parent directory for %q: %w", target, err)
+	}
+	src, err := c.fsys.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("opening source %q: %w", srcPath, err)
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return fmt.Errorf("creating file %q: %w", target, err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("writing file %q: %w", target, err)
+	}
+	if err := os.Chmod(target, 0o644); err != nil {
+		return fmt.Errorf("setting file permissions on %q: %w", target, err)
+	}
+	return nil
+}
+
+// ExtractTo extracts all Helm chart directories from the embedded filesystem
+// to the destination directory on disk.
+func (c *ChartFS) ExtractTo(destDir string) error {
+	chartDirs, err := c.walkAndFindChartDirs(c.fsys, ".")
+	if err != nil {
+		return fmt.Errorf("discovering chart directories: %w", err)
+	}
+	for _, chartDir := range chartDirs {
+		if err := c.extractChartDir(destDir, chartDir); err != nil {
+			return fmt.Errorf("extracting chart %q: %w", chartDir, err)
+		}
+	}
+	return nil
 }
 
 // WithBaseDir returns a new ChartFS that is rooted at the given base directory.
