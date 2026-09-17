@@ -33,6 +33,7 @@ func (f *FakeKube) BatchV1ClientSet(
 }
 
 func (f *FakeKube) ClientSet(string) (kubernetes.Interface, error) {
+	//nolint:staticcheck // SA1019: keep until apply configs are generated for tests
 	cs := fake.NewSimpleClientset(f.objects...)
 
 	// Add reactor to automatically set namespace status to Active when created

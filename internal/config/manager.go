@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/redhat-appstudio/helmet/internal/annotations"
@@ -13,6 +14,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// inClusterNamespaceFile is the ServiceAccount namespace injected into pods.
+const inClusterNamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+// ConfigNamespaceEnv overrides ConfigMap discovery namespace. When unset,
+// the in-cluster ServiceAccount namespace is used, then the kubeconfig context
+// namespace. Discovery never lists ConfigMaps cluster-wide.
+const ConfigNamespaceEnv = "HELMET_CONFIG_NAMESPACE"
 
 // ConfigMapManager the actor responsible for managing installer configuration in
 // the cluster.
@@ -42,38 +51,52 @@ var (
 	ErrIncompleteConfigMap = errors.New("invalid configmap found in the cluster")
 )
 
-// GetConfigMap retrieves the ConfigMap from the cluster, checking if a single
-// resource is present.
-func (m *ConfigMapManager) GetConfigMap(
-	ctx context.Context,
-) (*corev1.ConfigMap, error) {
-	coreClient, err := m.kube.CoreV1ClientSet("")
-	if err != nil {
-		return nil, err
+// namespaceFromEnvOrInCluster returns HELMET_CONFIG_NAMESPACE or the pod
+// ServiceAccount namespace. Empty means those sources are unavailable.
+func namespaceFromEnvOrInCluster() string {
+	if ns := strings.TrimSpace(os.Getenv(ConfigNamespaceEnv)); ns != "" {
+		return ns
 	}
-
-	// Listing all ConfigMaps matching the label selector.
-	configMapList, err := coreClient.ConfigMaps("").List(ctx, metav1.ListOptions{
-		LabelSelector: Selector,
-	})
+	data, err := os.ReadFile(inClusterNamespaceFile)
 	if err != nil {
-		return nil, err
+		return ""
 	}
+	return strings.TrimSpace(string(data))
+}
 
-	// When no ConfigMaps matching criteria is found in the cluster.
-	if len(configMapList.Items) == 0 {
+func (m *ConfigMapManager) configListNamespace() (string, error) {
+	if ns := namespaceFromEnvOrInCluster(); ns != "" {
+		return ns, nil
+	}
+	ns, _, err := m.kube.RESTClientGetter("").ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return "", fmt.Errorf(
+			"unable to determine namespace for installer config (set %s): %w",
+			ConfigNamespaceEnv,
+			err,
+		)
+	}
+	ns = strings.TrimSpace(ns)
+	if ns == "" {
+		return "", fmt.Errorf(
+			"unable to determine namespace for installer config: set %s or a kubeconfig context namespace",
+			ConfigNamespaceEnv,
+		)
+	}
+	return ns, nil
+}
+
+func chooseConfigMap(items []corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	if len(items) == 0 {
 		return nil, fmt.Errorf(
 			"%w: using label selector %q",
 			ErrConfigMapNotFound,
 			Selector,
 		)
 	}
-	// Also, important to error out when multiple ConfigMaps are present in the
-	// cluster. Collecting and printing out the resources found by the label
-	// selector.
-	if len(configMapList.Items) > 1 {
+	if len(items) > 1 {
 		configMaps := []string{}
-		for _, cm := range configMapList.Items {
+		for _, cm := range items {
 			configMaps = append(
 				configMaps,
 				fmt.Sprintf("%s/%s", cm.GetNamespace(), cm.GetName()),
@@ -85,7 +108,30 @@ func (m *ConfigMapManager) GetConfigMap(
 			configMaps,
 		)
 	}
-	return &configMapList.Items[0], nil
+	return &items[0], nil
+}
+
+// GetConfigMap retrieves the installer ConfigMap from the current namespace
+// only (never cluster-wide).
+func (m *ConfigMapManager) GetConfigMap(
+	ctx context.Context,
+) (*corev1.ConfigMap, error) {
+	ns, err := m.configListNamespace()
+	if err != nil {
+		return nil, err
+	}
+	coreClient, err := m.kube.CoreV1ClientSet(ns)
+	if err != nil {
+		return nil, err
+	}
+
+	configMapList, err := coreClient.ConfigMaps(ns).List(ctx, metav1.ListOptions{
+		LabelSelector: Selector,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return chooseConfigMap(configMapList.Items)
 }
 
 // GetConfig retrieves configuration from a cluster's ConfigMap.

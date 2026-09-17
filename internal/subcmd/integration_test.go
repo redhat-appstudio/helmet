@@ -186,17 +186,17 @@ func TestDisableProductForIntegration_ScopedDisablement(t *testing.T) {
 
 	productA, err := cfg.GetProduct("Product A")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(productA.Enabled).To(gomega.BeFalse(),
+	g.Expect(productA.IsActive()).To(gomega.BeFalse(),
 		"Product A should be disabled (provides acs)")
 
 	productB, err := cfg.GetProduct("Product B")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(productB.Enabled).To(gomega.BeTrue(),
+	g.Expect(productB.IsActive()).To(gomega.BeTrue(),
 		"Product B should remain enabled (provides quay, not touched)")
 
 	productC, err := cfg.GetProduct("Product C")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(productC.Enabled).To(gomega.BeTrue(),
+	g.Expect(productC.IsActive()).To(gomega.BeTrue(),
 		"Product C should remain enabled (provides nexus, not touched)")
 }
 
@@ -223,7 +223,7 @@ func TestDisableProductForIntegration_NoProvidingProduct(t *testing.T) {
 	} {
 		spec, err := cfg.GetProduct(name)
 		g.Expect(err).ToNot(gomega.HaveOccurred())
-		g.Expect(spec.Enabled).To(gomega.BeTrue(),
+		g.Expect(spec.IsActive()).To(gomega.BeTrue(),
 			"%s should remain enabled", name)
 	}
 }
@@ -246,7 +246,7 @@ func TestDisableProductForIntegration_SecretNotCreated(t *testing.T) {
 
 	productA, err := cfg.GetProduct("Product A")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(productA.Enabled).To(gomega.BeTrue(),
+	g.Expect(productA.IsActive()).To(gomega.BeTrue(),
 		"Product A should remain enabled (acs secret not created)")
 }
 
@@ -261,7 +261,8 @@ func TestDisableProductForIntegration_AlreadyDisabled(t *testing.T) {
 	// Disable Product A before calling.
 	productA, err := cfg.GetProduct("Product A")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	productA.Enabled = false
+	off := false
+	productA.Enabled = &off
 	err = cfg.SetProduct("Product A", *productA)
 	g.Expect(err).ToNot(gomega.HaveOccurred())
 
@@ -275,11 +276,11 @@ func TestDisableProductForIntegration_AlreadyDisabled(t *testing.T) {
 
 	updatedA, err := cfg.GetProduct("Product A")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(updatedA.Enabled).To(gomega.BeFalse(),
+	g.Expect(updatedA.IsActive()).To(gomega.BeFalse(),
 		"Product A should remain disabled")
 
 	productB, err := cfg.GetProduct("Product B")
 	g.Expect(err).ToNot(gomega.HaveOccurred())
-	g.Expect(productB.Enabled).To(gomega.BeTrue(),
+	g.Expect(productB.IsActive()).To(gomega.BeTrue(),
 		"Product B should remain enabled")
 }

@@ -7,7 +7,6 @@ import (
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestSecretsChecker_Check(t *testing.T) {
@@ -16,7 +15,7 @@ func TestSecretsChecker_Check(t *testing.T) {
 	namespace := "test-ns"
 
 	t.Run("succeeds when all secrets exist", func(t *testing.T) {
-		client := fake.NewSimpleClientset(
+		client := newFakeClientset(
 			&corev1.Secret{ObjectMeta: metav1.ObjectMeta{
 				Name: "quay", Namespace: namespace,
 			}},
@@ -41,7 +40,7 @@ func TestSecretsChecker_Check(t *testing.T) {
 	})
 
 	t.Run("fails when some secrets are missing", func(t *testing.T) {
-		client := fake.NewSimpleClientset(
+		client := newFakeClientset(
 			&corev1.Secret{ObjectMeta: metav1.ObjectMeta{
 				Name: "quay", Namespace: namespace,
 			}},
@@ -58,7 +57,7 @@ func TestSecretsChecker_Check(t *testing.T) {
 	})
 
 	t.Run("fails when all secrets are missing", func(t *testing.T) {
-		client := fake.NewSimpleClientset()
+		client := newFakeClientset()
 		checker := NewSecretsChecker(client, namespace, []string{"quay", "acs"})
 		result := checker.Check(ctx)
 
@@ -68,7 +67,7 @@ func TestSecretsChecker_Check(t *testing.T) {
 	})
 
 	t.Run("succeeds with empty secret list", func(t *testing.T) {
-		client := fake.NewSimpleClientset()
+		client := newFakeClientset()
 		checker := NewSecretsChecker(client, namespace, []string{})
 		result := checker.Check(ctx)
 
@@ -77,7 +76,7 @@ func TestSecretsChecker_Check(t *testing.T) {
 	})
 
 	t.Run("fails when secret is in wrong namespace", func(t *testing.T) {
-		client := fake.NewSimpleClientset(
+		client := newFakeClientset(
 			&corev1.Secret{ObjectMeta: metav1.ObjectMeta{
 				Name: "quay", Namespace: "other-ns",
 			}},

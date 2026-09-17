@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/redhat-appstudio/helmet/internal/config"
 )
 
 // Runner executes helmet-ex CLI commands in a subprocess. All paths (binary,
@@ -29,7 +31,11 @@ func (r *Runner) newCmd(ctx context.Context, args ...string) *exec.Cmd {
 	bin := filepath.Join(r.projectRoot, r.binaryPath)
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Dir = r.projectRoot
-	cmd.Env = os.Environ()
+	// ConfigMap lookup is namespace-scoped. config --create uses --namespace;
+	// other subcommands read HELMET_CONFIG_NAMESPACE (or kubeconfig context).
+	cmd.Env = append(os.Environ(),
+		config.ConfigNamespaceEnv+"="+r.namespace,
+	)
 	return cmd
 }
 

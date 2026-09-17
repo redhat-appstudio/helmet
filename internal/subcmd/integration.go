@@ -51,15 +51,16 @@ func disableProductForIntegration(
 		return nil // no product provides this integration
 	}
 
-	spec, err := cfg.GetProduct(productName)
-	if err != nil {
-		return err
+	spec := cfg.FindProduct(productName)
+	if spec == nil {
+		return nil // product not in config (e.g. integration-only bundle)
 	}
-	if !spec.Enabled {
+	if !spec.IsActive() {
 		return nil // already disabled
 	}
 
-	spec.Enabled = false
+	disabled := false
+	spec.Enabled = &disabled
 	if err := cfg.SetProduct(productName, *spec); err != nil {
 		return err
 	}
