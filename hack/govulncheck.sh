@@ -116,4 +116,4 @@ main() {
     report_findings "$filtered_findings"
 }
 
-main "${@}"
+main "$@"

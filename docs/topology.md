@@ -162,6 +162,10 @@ Each chart is assigned a target namespace using a three-tier priority system:
 | 2 | Chart has `use-product-namespace` | Referenced product's namespace from `config.yaml` |
 | 3 | Neither annotation | Installer's default namespace |
 
+**Bundle layout**: Charts may live under `bundles/<bundle-id>/charts/<chart-name>/` with shared `bundles/<bundle-id>/config.yaml` and `values.yaml.tpl`. Dependencies may use `depends-on-global-charts` (charts under `charts/`), `depends-on-bundle-charts` (siblings in the same bundle), `depends-on-bundles` (all charts in listed bundles must precede this chart in topology), or the legacy `depends-on` when none of the split annotations are set.
+
+If `helmet.redhat-appstudio.github.com/install-release-in-installer-namespace` is `"true"`, the Helm release is installed in the **installer namespace** anyway. Use this when the chart creates namespaced resources in the installer namespace (for example integration Secrets) while application workloads are rendered into another namespace via template fields: Helm ownership labels (`meta.helm.sh/release-namespace`) must match the release namespace, so the release should not run in the product namespace if those resources live in the installer namespace.
+
 ### Example
 
 From [`helmet-ex/installer/config.yaml`](../example/helmet-ex/installer/config.yaml):
@@ -192,6 +196,10 @@ annotations:
 The [`helmet-ex`](../example/helmet-ex/) example includes 10 charts demonstrating multi-tier dependencies, integration providers and consumers, and weight-based ordering. See [example-charts.md](example-charts.md) for the full chart inventory, dependency graph diagram, and deployment order walkthrough.
 
 ## Troubleshooting
+
+### Helm secret ownership / `meta.helm.sh/release-namespace`
+
+If a chart was previously installed in the product namespace but places integration Secrets in the installer namespace, switching to `install-release-in-installer-namespace` (or changing product vs integration bundle) can leave a Secret that Helm refuses to adopt. Remove the affected Secret in the installer namespace once, or uninstall the old release in the previous namespace, then deploy again.
 
 ### Missing Dependency
 

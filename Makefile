@@ -55,7 +55,9 @@ GOVULNCHECK_IGNORE_MODULES ?= stdlib toolchain
 # Vulnerability IDs to ignore in govulncheck (space-separated). IDs are used
 # literally don't use quotes, just split the IDs using spaces.
 # Example: GO-2026-4514 GO-2025-1234
-GOVULNCHECK_IGNORE_IDS ?= GO-2026-4514
+# GO-2026-5064/5338/5622: containerd (Helm transitive); no fixed release yet.
+# GO-2026-5932/5939: x/crypto and claircore; no fixed release at pinned versions.
+GOVULNCHECK_IGNORE_IDS ?= GO-2026-4514 GO-2026-5064 GO-2026-5338 GO-2026-5622 GO-2026-5932 GO-2026-5939
 
 .EXPORT_ALL_VARIABLES:
 

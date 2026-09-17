@@ -12,13 +12,13 @@ Every Helmet installer follows this convention-based structure:
 installer/
 ├── config.yaml          # Configuration schema (required)
 ├── values.yaml.tpl      # Go template for Helm values (required)
-├── charts/              # Helm charts with framework annotations
-│   ├── product-a/
-│   │   ├── Chart.yaml
-│   │   └── templates/
-│   └── product-b/
-│       ├── Chart.yaml
-│       └── templates/
+├── charts/              # Global / shared Helm charts (framework annotations)
+├── bundles/             # Optional: grouped charts sharing bundle config + values.yaml.tpl
+│   └── <bundle-id>/
+│       ├── config.yaml
+│       ├── values.yaml.tpl
+│       └── charts/
+│           └── <chart-name>/
 └── instructions.md      # MCP server context (optional)
 ```
 
@@ -35,6 +35,17 @@ installer/
 | File | Purpose | Framework Constant |
 |------|---------|-------------------|
 | `instructions.md` | Context and guidance for the MCP server, provided to AI assistants | `constants.InstructionsFilename` |
+
+### Distributed installer layout (for config merge)
+
+Installers that use `WithDistributedInstallerMergeLayout()` may add:
+
+| File | Purpose |
+|------|---------|
+| `config/settings.yaml` | Shared installer settings merged into `config.yaml` |
+| `helmet.yaml` | Blueprint listing `products` as `local://<id>` references; `<id>` is the bundle id or chart suffix (`bundles/<id>/` or `charts/tssc-<id>`) |
+
+Product config fragments are merged from `bundles/<id>/config.yaml` or `charts/<name>/config.yaml`. Integration Secrets are created via **`integration`** CLI commands, not from `helmet.yaml`. See [configuration.md](configuration.md).
 
 The framework discovers charts automatically by walking the filesystem and looking for directories containing `Chart.yaml`.
 

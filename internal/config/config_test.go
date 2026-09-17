@@ -132,7 +132,8 @@ func TestNewConfigFromFile(t *testing.T) {
 		g.Expect(product).NotTo(o.BeNil())
 
 		// Modify it
-		product.Enabled = false
+		off := false
+		product.Enabled = &off
 		newNamespace := "new-productD-namespace"
 		product.Namespace = &newNamespace
 		product.Properties["catalogURL"] = "http://new.url/catalog.yaml"

@@ -9,6 +9,7 @@ import (
 
 	o "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/chartutil"
 )
 
 // testYamlTmpl is a template to render a YAML payload based on the information
@@ -75,4 +76,22 @@ func TestEngine_Render(t *testing.T) {
 	product, err := cfg.GetProduct("Product D")
 	g.Expect(err).To(o.Succeed())
 	g.Expect(root["catalogURL"]).To(o.Equal(product.Properties["catalogURL"]))
+}
+
+// Regression: values templates must use text/template so Sprig toJson/quote output is not
+// HTML-escaped (which breaks YAML and chartutil.ReadValues — often "line 3").
+func TestEngine_Render_ToJsonParsesAsHelmValues(t *testing.T) {
+	g := o.NewWithT(t)
+
+	const tmpl = `
+---
+quay:
+  url: {{ "https://registry.example.com:8443/api" | toJson }}
+`
+	e := NewEngine(nil, tmpl)
+	payload, err := e.Render(&Variables{})
+	g.Expect(err).To(o.Succeed())
+
+	_, err = chartutil.ReadValues(payload)
+	g.Expect(err).To(o.Succeed())
 }

@@ -6,7 +6,7 @@ This document covers the `config.yaml` schema, default values, ConfigMap storage
 
 ## Configuration Schema
 
-The configuration file uses a top-level key (matching the installer name) containing two sections: `settings` and `products`.
+The configuration file uses a top-level key (matching the installer name) containing `settings` and `products`.
 
 ### Example Configuration
 
@@ -50,6 +50,12 @@ The `settings` section is a freeform key-value map for installer-wide configurat
 ### Products Section
 
 The `products` section is a list of product specifications. Each product represents a deployable component with its own Helm chart and configuration.
+
+### Integrations (credentials and templates)
+
+Helm installs are driven only by **`products`**. Integration credentials are created with the **`integration`** CLI subcommands (Kubernetes Secrets). Charts still use **`integrations-provided`** / **`integrations-required`** annotations for topology and CEL validation; see [topology.md](topology.md) and [integrations.md](integrations.md).
+
+For backward compatibility, Helm templates expose **`.Installer.Integrations`** as an empty map unless your application supplies values another way.
 
 ## Product Field Reference
 
@@ -133,7 +139,7 @@ data:
 | Name format | `{appName}-config` |
 | Label selector | `helmet.redhat-appstudio.github.com/config=true` |
 | Data key | `config.yaml` |
-| Cardinality | Single ConfigMap per cluster (enforced by label selector) |
+| Cardinality | One labeled ConfigMap **in the current namespace** (`HELMET_CONFIG_NAMESPACE`, pod ServiceAccount namespace, or kubeconfig context). Never listed cluster-wide |
 
 ### ConfigMap Operations
 
@@ -169,6 +175,16 @@ helmet-ex config --create --force
 helmet-ex config --create --namespace custom-namespace
 ```
 
+`config --create --namespace` writes the ConfigMap in that namespace. Later
+commands (`config --get`, `integration`, `deploy`, and so on) look only in the
+current namespace: `HELMET_CONFIG_NAMESPACE` if set, otherwise the in-cluster
+ServiceAccount namespace, otherwise the kubeconfig context namespace.
+
+```sh
+export HELMET_CONFIG_NAMESPACE=custom-namespace
+helmet-ex integration quay --url=https://quay.io --token=... --organization=...
+```
+
 ### View Configuration
 
 ```sh
@@ -199,8 +215,9 @@ Configuration is exposed to Helm templates via the `values.yaml.tpl` template sy
 | `.Installer.Products.<KeyName>.Enabled` | boolean | Product enabled state |
 | `.Installer.Products.<KeyName>.Namespace` | string | Product target namespace |
 | `.Installer.Products.<KeyName>.Properties` | map | Product-specific properties |
+| `.Installer.Integrations.<id>` | object | Integration entry with `Name`, `ID`, `Properties` (and `Integration` as a deprecated alias for `id`) |
 
-Products are keyed by `KeyName()`, not the original `name` field. See [Product Name and KeyName](#product-name-and-keyname).
+Products are keyed by `KeyName()`, not the original `name` field. See [Product Name and KeyName](#product-name-and-keyname). Integrations are keyed by `id` (for example `quay`, `tpa`).
 
 ### Example Template Usage
 
@@ -268,6 +285,7 @@ The `ApplyDefaults()` method propagates the installer namespace to products with
 | Rule | Error |
 |------|-------|
 | `settings` section must exist | `missing settings` |
+| Each integration entry has `name` and `id` (or legacy `integration`) | `integration entry missing name` / `integration entry missing id` |
 | Enabled products must have namespace | `product <name>: missing namespace` |
 | Configuration must unmarshal successfully | `failed to unmarshal configuration` |
 

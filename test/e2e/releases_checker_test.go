@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	o "github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 // newTestHelmConfig creates an action.Configuration backed by in-memory
@@ -78,7 +77,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -94,7 +93,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 		// helmet-operators missing
 		addRelease(t, store, "helmet-infrastructure", release.StatusDeployed)
 
-		client := fake.NewSimpleClientset()
+		client := newFakeClientset()
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -111,7 +110,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 		addRelease(t, store, "helmet-operators", release.StatusFailed)
 		addRelease(t, store, "helmet-infrastructure", release.StatusDeployed)
 
-		client := fake.NewSimpleClientset()
+		client := newFakeClientset()
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -128,7 +127,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			addRelease(t, store, name, release.StatusDeployed)
 		}
 
-		client := fake.NewSimpleClientset() // no ConfigMap
+		client := newFakeClientset() // no ConfigMap
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -154,7 +153,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			Data: map[string]string{"wrong-key": "data"},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -180,7 +179,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -206,7 +205,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 
@@ -232,7 +231,7 @@ func TestReleasesChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewReleasesChecker(helmCfg, client, namespace, expectedOrder)
 		result := checker.Check(ctx)
 

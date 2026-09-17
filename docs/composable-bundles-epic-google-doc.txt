@@ -1,0 +1,132 @@
+COMPOSABLE CHART BUNDLES — EPIC SUMMARY (COPY INTO GOOGLE DOCS)
+
+Purpose of this note
+Attach this content to the Jira Epic. It summarizes what Helmet provides for composable bundles, optional installer bundle directories (bundles/ grouping related charts), the problem being solved, how helmet.yaml and bundle modes work, integration ConfigMap behavior, the proposed story list (Helmet + tssc-cli), and backward compatibility with classic installers.
+
+
+PROBLEM WE ARE SOLVING
+
+Today many installers rely on one large config file and one root values template. That couples every chart together and makes it hard to:
+
+• Turn on only part of the stack (for example integration-only credentials versus a full product install).
+• Change one chart’s templates or config without touching unrelated charts.
+• Use the same chart in different roles (minimal integration bundle versus full product) without forking the installer.
+
+Goal: composition. Each chart stays a bundle with its own config fragment, its own values.yaml.tpl, and its own Helm templates, while the overall install is declared in one predictable place for CI/CD and operators.
+
+
+COMPOSABLE BUNDLES (PER CHART)
+
+Each chart under charts/<chart>/ or bundles/<bundle-id>/charts/<chart>/ owns its own Helm artifacts (templates, Chart.yaml). Installer configuration for that chart may live in a per-chart config.yaml (typical for charts/ only), or—for bundle layouts—in a shared bundles/<bundle-id>/config.yaml that applies to the whole group (see next section).
+
+• config.yaml — either per-chart under charts/, or shared at bundle level under bundles/<bundle-id>/ for distributed merge; may also include per-chart fragments where used.
+• values.yaml.tpl — either per-chart, or shared at bundles/<bundle-id>/values.yaml.tpl for all charts in that bundle, with installer context (namespace, settings, products, integrations).
+• Chart.yaml — framework annotations: dependencies (global charts, bundle siblings, or whole bundles), bundle behavior, integration names for topology and CEL expressions, optional installer integration id versus topology-facing integration names.
+
+The root installer can still ship shared settings and cross-cutting values.yaml.tpl glue.
+
+Why it matters: smaller blast radius per change, fewer giant merge conflicts in one root template, and review scoped to one bundle at a time.
+
+
+BUNDLE DIRECTORIES (GROUPING RELATED CHARTS)
+
+Beyond a single chart folder under charts/, an installer may use a bundle directory that groups one or more Helm charts that share the same product configuration surface and the same values template:
+
+Directory layout (alongside the existing charts/ tree):
+
+• bundles/<bundle-id>/config.yaml — shared installer fragment for that product group (used by distributed merge when helmet.yaml lists local://<bundle-id> as a product; bundle-id matches the suffix after local:// when using short ids such as dh, pipelines, tas).
+• bundles/<bundle-id>/values.yaml.tpl — shared Go template for rendering Helm values for every chart in that bundle (Helmet loads this before any per-chart values.yaml.tpl under the bundle).
+• bundles/<bundle-id>/charts/<chart-name>/ — each Helm chart still has its own Chart.yaml, templates/, and optional chart-local values.yaml and values.yaml.tpl.
+
+Global charts stay under charts/ (for example shared infrastructure, IAM, Quay integration-only chart). Bundle charts may depend on:
+
+• Global charts — listed in Chart.yaml using depends-on-global-charts (charts installed from the top-level charts/ directory).
+• Sibling charts in the same bundle — depends-on-bundle-charts (other charts under the same bundles/<id>/charts/ path).
+• Other bundles — depends-on-bundles lists bundle ids; the framework expands that to an ordering constraint so all charts in those bundles appear before this chart in the deployment topology.
+
+Legacy depends-on (single comma-separated list) remains supported when none of the split annotations are used.
+
+Helmet discovers charts whether they live under charts/<name> or bundles/<bundle-id>/charts/<name>. Values rendering and distributed merge follow that layout so topology and ConfigMap merge stay consistent.
+
+
+HELMET FEATURE: DRIVE THE INSTALL FROM helmet.yaml
+
+Installers that adopt a distributed layout use a helmet.yaml blueprint listing which charts participate and how:
+
+• products — local:// references for charts that should be deployed as products (full path when the chart supports it).
+• integrations — local:// references for charts that should be deployed as integration bundles when supported.
+
+The suffix after local:// (for example quay, tpa) matches the chart directory naming convention (for example charts/tssc-quay, charts/tssc-tpa). That suffix becomes the stable integration id in merged config and ties to template keys such as .Installer.Integrations.<id>.
+
+This yields one declarative file for “what is in this install” instead of hand-maintaining all low-level YAML in a single mega-file.
+
+
+HELMET FEATURE: BUNDLE MODE / BUNDLE TYPE
+
+Charts declare which placements are valid:
+
+• Integration — lighter footprint (often secrets, connectivity checks, slim resources); listed under integrations in helmet.yaml when applicable.
+• Product — full install path; listed under products when applicable.
+• Both — chart may appear in either list; actual runtime behavior follows merged config and templates, not only which list was used.
+
+Charts advertise supported placements via framework annotations (bundle-types-supported and related). The framework validates that helmet.yaml does not list a chart in a role it does not support.
+
+
+INTEGRATION BUNDLES AND THE CONFIGMAP
+
+Merged installer configuration is stored in the cluster (typically a ConfigMap). Integration entries include properties and labels merged from chart values defaults and the blueprint flow.
+
+Operators still replace placeholders (URLs, tokens, flags) with real environment-specific values before a successful deploy. Secrets are not assumed to live in Git; the design focuses on a clear, mergeable shape in config and predictable updates before deploy.
+
+
+BACKWARD COMPATIBILITY (CLASSIC STRUCTURE)
+
+Helmet remains compatible with the classic installer layout: a single embedded config.yaml, a root values.yaml.tpl, and charts described only by framework annotations — without helmet.yaml, without distributed merge, and without listing integrations in YAML when operators manage integrations only via CLI or existing cluster workflows.
+
+Composable bundles and helmet.yaml are additive. Consumers adopt them incrementally.
+
+
+— STORY LIST —
+
+Stories below are sized for small, independent PRs. Ordering may still be logical (framework before consumer wiring).
+
+
+Helmet (framework)
+
+Bundle types annotation and validation — Parse and validate which placements (integration / product / both) a chart supports; reject invalid blueprint placements.
+
+Distributed merge: blueprint and fragments — Merge config/settings.yaml, helmet.yaml, per-bundle bundles/<id>/config.yaml (when present), or legacy charts/<name>/config.yaml, into one installer payload; generate integrations entries from chart metadata and values defaults.
+
+Integration spec: stable id and YAML aliases — Standardize installer.integrations on id (chart suffix / template keys), with backward-compatible aliasing for legacy field names.
+
+Resolver: integration bundles by chart id — Resolve installer.integrations to charts by naming convention (for example tssc-<id>) and bundle-type rules; keep topology and CEL integration names separate from installer id where needed.
+
+Template variables: .Installer.Integrations — Expose integration entries to values.yaml.tpl keyed by id, with stable fields for name and properties.
+
+Release namespace annotation for Helm ownership — Allow charts that emit installer-namespace resources to pin Helm release namespace so ownership metadata stays consistent when switching product versus integration bundle deploys.
+
+Documentation: topology, configuration, distributed layout — Document helmet.yaml, local:// references, bundle modes, bundle directory layout, dependency annotations (global charts vs bundle charts vs depends-on-bundles), and backward-compatible single-file config.
+
+
+tssc-cli (first consumer)
+
+Chart annotations: bundle types and installer id — Set bundle-types-supported, optional installer-integration-id, and related metadata on representative charts (Quay, TPA, and others as needed).
+
+Root values.yaml.tpl: optional product versus integration-only paths — Remove hard failures on product-only assumptions when a chart runs integration-only; align shared glue with bundle modes.
+
+Per-chart values.yaml.tpl and integration Secret ownership — Align TPA and Quay templates with installer namespace, integration id keys in templates, and Helm ownership when switching between product and integration modes.
+
+IAM and shared charts: conditional assumptions — Adjust charts that assumed TPA always as a full product so integration-only installs still render (Keycloak and realm toggles as needed).
+
+Distributed installer layout — Wire WithDistributedInstallerMergeLayout, helmet.yaml, bundles/<id>/config.yaml and shared values.yaml.tpl where applicable, and per-chart values keys for merged properties; document operator workflow for replacing placeholders.
+
+E2E or manual runbook — Short runbook covering classic versus distributed config, deploy prerequisites, and placeholder replacement before production deploy.
+
+
+REFERENCES (HELMET REPO DOCS)
+
+configuration.md — schema, integrations list, template variables.
+topology.md — annotations, namespace assignment, bundle dependency annotations, install-release-in-installer-namespace.
+installer-structure.md — directory layout (charts/ and bundles/), optional distributed merge files.
+
+Source markdown design doc (repo): docs/composable-bundles-design.md

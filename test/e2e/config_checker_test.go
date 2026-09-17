@@ -9,7 +9,6 @@ import (
 	"github.com/redhat-appstudio/helmet/internal/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestConfigChecker_Check(t *testing.T) {
@@ -35,7 +34,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -44,7 +43,7 @@ func TestConfigChecker_Check(t *testing.T) {
 	})
 
 	t.Run("fails when ConfigMap is missing", func(t *testing.T) {
-		client := fake.NewSimpleClientset()
+		client := newFakeClientset()
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -63,7 +62,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -83,7 +82,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			Data: map[string]string{},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -103,7 +102,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			Data: map[string]string{constants.ConfigFilename: ""},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -126,7 +125,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -148,7 +147,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
@@ -170,7 +169,7 @@ func TestConfigChecker_Check(t *testing.T) {
 			},
 		}
 
-		client := fake.NewSimpleClientset(cm)
+		client := newFakeClientset(cm)
 		checker := NewConfigChecker(client, namespace, appName)
 		result := checker.Check(ctx)
 
