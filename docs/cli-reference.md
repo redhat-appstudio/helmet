@@ -214,7 +214,7 @@ helmet-ex template <chart>
 |------|---------|-------------|
 | `--show-values` | `true` | Show rendered values template as YAML |
 | `--show-manifests` | `true` | Show Helm chart rendered manifests |
-| `--namespace` | `default` | Namespace for template rendering |
+| `--namespace` | `AppContext.Namespace` | Namespace for template rendering |
 | `--values-template` | `values.yaml.tpl` | Path to values template file |
 
 **Behavior:**

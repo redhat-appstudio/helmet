@@ -183,7 +183,7 @@ Examples:
 		flags:            f,
 		showValues:       true,
 		showManifests:    true,
-		namespace:        "default",
+		namespace:        appCtx.Namespace,
 		installerTarball: installerTarball,
 	}
 
@@ -192,7 +192,7 @@ Examples:
 	flags.SetValuesTmplFlag(p, &t.valuesTemplatePath)
 
 	p.StringVar(&t.namespace, "namespace", t.namespace,
-		"namespace to use on template rendering")
+		"Namespace for template rendering (defaults to AppContext namespace)")
 	p.BoolVar(&t.showValues, "show-values", t.showValues,
 		"show values template rendered payload")
 	p.BoolVar(&t.showManifests, "show-manifests", t.showManifests,
