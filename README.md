@@ -7,7 +7,7 @@
     </a>
 </p>
 
-# Helmet
+# <img src="logo.svg" alt="Helmet logo" width="36" height="36" style="vertical-align: middle; background: white; border-radius: 4px;"> Helmet
 
 **A framework for building Kubernetes installers with Helm**
 
